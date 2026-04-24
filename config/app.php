@@ -58,7 +58,7 @@ return [
     'session' => [
         'name'     => getenv('SESSION_NAME') ?: 'byabsayee_session',
         'lifetime' => 60 * 60 * 24 * 30,  // 30 days in seconds
-        'secure'   => true,   // only send cookie over HTTPS
+        'secure' => false,   // only send cookie over HTTPS
         'httponly' => true,   // JS cannot read the cookie (prevents XSS theft)
         'samesite' => 'Lax',  // CSRF protection
     ],
