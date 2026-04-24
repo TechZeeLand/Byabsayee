@@ -31,3 +31,6 @@ WORKDIR /Sites/byabsayee
 EXPOSE 9000
 
 CMD ["php-fpm"]
+
+# Make environment variables available to PHP-FPM workers
+RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
