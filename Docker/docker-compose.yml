@@ -1,9 +1,9 @@
 services:
   byabsayee:
     build:
-      context: .          # builds the Dockerfile in this same folder
+      context: ..
       dockerfile: Dockerfile
-    image: byabsayee-php  # saves the built image with this name
+    image: byabsayee-php
     container_name: byabsayee
     volumes:
       - /Sites/byabsayee:/Sites/byabsayee:rw
@@ -31,4 +31,4 @@ services:
 
 networks:
   web:
-    external: true    # joins your existing shared "web" network
+    external: true
