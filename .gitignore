@@ -38,3 +38,5 @@ desktop.ini
 # --- Composer lock is optional to commit, but good practice to include ---
 # composer.lock  ← we leave this uncommented so lock file IS committed
 #                   this ensures everyone uses exact same package versions
+/storage/sessions/
+/sessions.ini

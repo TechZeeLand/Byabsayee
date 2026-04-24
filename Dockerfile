@@ -34,3 +34,8 @@ CMD ["php-fpm"]
 
 # Make environment variables available to PHP-FPM workers
 RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
+
+# Session config
+RUN echo "session.save_path = /Sites/byabsayee/storage/sessions" > /usr/local/etc/php/conf.d/sessions.ini \
+ && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/sessions.ini \
+ && echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
