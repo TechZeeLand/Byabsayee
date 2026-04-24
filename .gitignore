@@ -1,0 +1,40 @@
+# =============================================================================
+# Byabsayee — .gitignore
+# =============================================================================
+# Files listed here are NEVER pushed to GitHub.
+# This protects passwords, user uploads, and generated files.
+# =============================================================================
+
+# --- PHP dependencies (reinstalled via: composer install) ---
+/vendor/
+
+# --- User uploaded files (never commit real user data) ---
+/uploads/
+
+# --- Logs ---
+*.log
+/logs/
+
+# --- Environment / secrets (if you ever use a .env file) ---
+.env
+.env.local
+.env.production
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE files ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- PHP cache ---
+*.cache
+/cache/
+
+# --- Composer lock is optional to commit, but good practice to include ---
+# composer.lock  ← we leave this uncommented so lock file IS committed
+#                   this ensures everyone uses exact same package versions

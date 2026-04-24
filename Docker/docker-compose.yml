@@ -1,0 +1,34 @@
+services:
+  byabsayee:
+    build:
+      context: .          # builds the Dockerfile in this same folder
+      dockerfile: Dockerfile
+    image: byabsayee-php  # saves the built image with this name
+    container_name: byabsayee
+    volumes:
+      - /Sites/byabsayee:/Sites/byabsayee:rw
+      - /raids/byabsayee-uploads:/Sites/byabsayee/uploads:rw
+    networks:
+      - web
+    restart: unless-stopped
+    environment:
+      - APP_NAME=Byabsayee
+      - APP_URL=http://192.168.0.123:1011
+      - APP_ENV=production
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_NAME=byabsayee_db
+      - DB_USER=zizi
+      - DB_PASS=RAYilyvm2005@
+      - UPLOAD_PATH=/Sites/byabsayee/uploads
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=your@email.com
+      - SMTP_PASS=your_app_password
+      - SMTP_FROM_NAME=Byabsayee
+      - SESSION_NAME=byabsayee_session
+      - APP_KEY=7bafd7f700b5cf9bbe90fe71f410223e9af6762e95ffc446152a84bd1ff73058
+
+networks:
+  web:
+    external: true    # joins your existing shared "web" network
