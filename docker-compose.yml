@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: byabsayee-php
     container_name: byabsayee
     volumes:
       - /Sites/byabsayee:/Sites/byabsayee:rw
