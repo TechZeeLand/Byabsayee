@@ -1,7 +1,7 @@
 services:
   byabsayee:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     image: byabsayee-php
     container_name: byabsayee
