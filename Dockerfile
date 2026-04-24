@@ -1,6 +1,5 @@
 FROM php:8.2-fpm-alpine
 
-# Install system dependencies and PHP extensions needed by Byabsayee
 RUN apk add --no-cache \
         freetype-dev \
         libjpeg-turbo-dev \
@@ -21,21 +20,19 @@ RUN apk add --no-cache \
         bcmath \
         opcache
 
-# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
+# Pass environment variables through to PHP-FPM workers
+RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
+
+# Set session save path to a folder inside the mounted volume
+RUN echo "session.save_path = /Sites/byabsayee/storage/sessions" \
+        > /usr/local/etc/php/conf.d/byabsayee.ini \
+ && echo "session.gc_probability = 1" \
+        >> /usr/local/etc/php/conf.d/byabsayee.ini
+
 WORKDIR /Sites/byabsayee
 
-# PHP-FPM will listen on port 9000 inside the container
 EXPOSE 9000
 
 CMD ["php-fpm"]
-
-# Make environment variables available to PHP-FPM workers
-RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
-
-# Session config
-RUN echo "session.save_path = /Sites/byabsayee/storage/sessions" > /usr/local/etc/php/conf.d/sessions.ini \
- && echo "session.gc_probability = 1" >> /usr/local/etc/php/conf.d/sessions.ini \
- && echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
