@@ -1,0 +1,91 @@
+<?php
+$pageTitle = 'Suppliers — ' . e($book['name']);
+ob_start();
+?>
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb">
+            <a href="/dashboard">Dashboard</a> <span>›</span>
+            <a href="/books/<?= $book['id'] ?>"><?= e($book['name']) ?></a> <span>›</span>
+            <span>Suppliers</span>
+        </div>
+        <h1>Suppliers</h1>
+        <p><?= count($suppliers) ?> supplier<?= count($suppliers) !== 1 ? 's' : '' ?></p>
+    </div>
+    <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>
+</div>
+
+<form method="GET" style="margin-bottom:16px;display:flex;gap:8px">
+    <input type="text" name="q" value="<?= e($_GET['q'] ?? '') ?>" placeholder="Search suppliers…"
+           style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;flex:1;outline:none">
+    <button type="submit" class="btn btn-secondary">Search</button>
+    <?php if (!empty($_GET['q'])): ?>
+        <a href="/books/<?= $book['id'] ?>/suppliers" class="btn btn-secondary">Clear</a>
+    <?php endif; ?>
+</form>
+
+<?php if (empty($suppliers)): ?>
+<div class="table-wrap">
+    <div class="empty-state">
+        <div class="empty-icon">🏭</div>
+        <h3>No suppliers yet</h3>
+        <p>Add suppliers to track your purchases.</p>
+    </div>
+</div>
+<?php else: ?>
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Phone</th>
+                <th>Invoices</th>
+                <th style="text-align:right">Total Purchased</th>
+                <th style="text-align:right">Paid</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($suppliers as $s): ?>
+        <tr>
+            <td>
+                <a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>"
+                   style="font-weight:500;color:var(--brand);text-decoration:none"><?= e($s['name']) ?></a>
+            </td>
+            <td class="td-muted"><?= $s['company'] ? e($s['company']) : '—' ?></td>
+            <td class="td-muted"><?= $s['phone']   ? e($s['phone'])   : '—' ?></td>
+            <td class="td-muted"><?= $s['invoice_count'] ?></td>
+            <td style="text-align:right" class="td-amount"><?= format_money($s['total_billed']) ?></td>
+            <td style="text-align:right" class="td-amount in"><?= format_money($s['total_paid']) ?></td>
+            <td><a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>" class="btn btn-sm btn-secondary">View</a></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
+<!-- ADD SUPPLIER MODAL -->
+<div class="modal-backdrop" id="addSupplierModal">
+    <div class="modal">
+        <div class="modal-title">Add Supplier</div>
+        <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/add">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group full"><label>Name *</label><input type="text" name="name" required placeholder="Contact name"></div>
+                <div class="form-group full"><label>Company</label><input type="text" name="company" placeholder="Company name"></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" placeholder="+880…"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email"></div>
+                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:56px"></textarea></div>
+                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Supplier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>
