@@ -11,10 +11,14 @@ class CustomerController
         $search = trim($_GET['q'] ?? '');
 
         $sql = 'SELECT c.*,
+                    cp.name AS privilege_name,
+                    cp.discount_type,
+                    cp.discount_value,
                     COUNT(DISTINCT i.id) AS invoice_count,
                     COALESCE(SUM(i.total),0) AS total_billed,
                     COALESCE(SUM(i.paid),0)  AS total_paid
                 FROM customers c
+                LEFT JOIN customer_privileges cp ON cp.id=c.privilege_id
                 LEFT JOIN invoices i ON i.customer_id=c.id AND i.deleted_at IS NULL
                 WHERE c.book_id=? AND c.deleted_at IS NULL';
         $p = [$book['id']];
@@ -37,17 +41,23 @@ class CustomerController
         $book     = $this->getBookOrFail($params['id']);
         $customer = $this->getCustomerOrFail($params['customer_id'], $book['id']);
 
-        $invoices = Database::query(
+        $invoices   = Database::query(
             'SELECT * FROM invoices WHERE customer_id=? AND book_id=? AND deleted_at IS NULL ORDER BY date DESC',
             [$customer['id'], $book['id']]
         );
-
-        $totals = Database::row(
+        $totals     = Database::row(
             'SELECT COALESCE(SUM(total),0) AS total_billed,
                     COALESCE(SUM(paid),0)  AS total_paid,
                     COALESCE(SUM(total)-SUM(paid),0) AS total_due
              FROM invoices WHERE customer_id=? AND book_id=? AND deleted_at IS NULL',
             [$customer['id'], $book['id']]
+        );
+        $privilege  = $customer['privilege_id']
+            ? Database::row('SELECT * FROM customer_privileges WHERE id=?', [$customer['privilege_id']])
+            : null;
+        $privileges = Database::query(
+            'SELECT * FROM customer_privileges WHERE book_id=? ORDER BY name',
+            [$book['id']]
         );
 
         require BASE_PATH . '/views/business/customers/show.php';
@@ -63,12 +73,14 @@ class CustomerController
         if (!$name) redirect('/books/'.$book['id'].'/customers', ['error' => 'Name is required.']);
 
         Database::run(
-            'INSERT INTO customers (book_id,name,phone,email,address,notes,created_at) VALUES (?,?,?,?,?,?,?)',
+            'INSERT INTO customers (book_id,name,phone,email,address,notes,privilege_id,created_at)
+             VALUES (?,?,?,?,?,?,?,?)',
             [$book['id'], $name,
-             trim($_POST['phone'] ?? '') ?: null,
-             trim($_POST['email'] ?? '') ?: null,
+             trim($_POST['phone']   ?? '') ?: null,
+             trim($_POST['email']   ?? '') ?: null,
              trim($_POST['address'] ?? '') ?: null,
-             trim($_POST['notes'] ?? '') ?: null,
+             trim($_POST['notes']   ?? '') ?: null,
+             !empty($_POST['privilege_id']) ? (int)$_POST['privilege_id'] : null,
              now()]
         );
 
@@ -86,12 +98,13 @@ class CustomerController
         if (!$name) redirect('/books/'.$book['id'].'/customers/'.$customer['id'], ['error' => 'Name is required.']);
 
         Database::run(
-            'UPDATE customers SET name=?,phone=?,email=?,address=?,notes=? WHERE id=?',
+            'UPDATE customers SET name=?,phone=?,email=?,address=?,notes=?,privilege_id=? WHERE id=?',
             [$name,
-             trim($_POST['phone'] ?? '') ?: null,
-             trim($_POST['email'] ?? '') ?: null,
+             trim($_POST['phone']   ?? '') ?: null,
+             trim($_POST['email']   ?? '') ?: null,
              trim($_POST['address'] ?? '') ?: null,
-             trim($_POST['notes'] ?? '') ?: null,
+             trim($_POST['notes']   ?? '') ?: null,
+             !empty($_POST['privilege_id']) ? (int)$_POST['privilege_id'] : null,
              $customer['id']]
         );
 

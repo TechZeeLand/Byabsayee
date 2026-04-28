@@ -68,6 +68,8 @@ class InvoiceController
         $date           = $_POST['date']            ?? date('Y-m-d');
         $dueDate        = $_POST['due_date']         ?? null;
         $notes          = trim($_POST['notes']       ?? '');
+        $noteCustomer   = trim($_POST['note_customer']  ?? '');
+        $noteSeller     = trim($_POST['note_seller']    ?? '');
         $discount       = (float)($_POST['discount']        ?? 0);
         $pointsDiscount = (float)($_POST['points_discount'] ?? 0);
         $deliveryCharge = (float)($_POST['delivery_charge'] ?? 0);
@@ -110,13 +112,13 @@ class InvoiceController
             'INSERT INTO invoices
                 (book_id,type,invoice_no,customer_id,supplier_id,date,due_date,
                  subtotal,discount,points_discount,delivery_charge,tax,total,paid,status,
-                 notes,delivery_method,payment_method,theme_color,created_by,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?)',
+                 notes,note_customer,note_seller,delivery_method,payment_method,theme_color,created_by,created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?)',
             [
                 $book['id'], $type, $invoiceNo, $customerId, $supplierId,
                 $date, $dueDate ?: null, $subtotal, $discount, $pointsDiscount,
                 $deliveryCharge, $tax, $total, 'draft',
-                $notes ?: null, $deliveryMethod ?: null, $paymentMethod ?: null,
+                $notes ?: null, $noteCustomer ?: null, $noteSeller ?: null, $deliveryMethod ?: null, $paymentMethod ?: null,
                 $themeColor, auth()['id'], now()
             ]
         );

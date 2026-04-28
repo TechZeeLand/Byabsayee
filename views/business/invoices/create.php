@@ -117,9 +117,15 @@ ob_start();
         </div>
 
         <div class="card">
-            <div class="form-group">
-                <label>Notes (printed on invoice)</label>
-                <textarea name="notes" placeholder="Payment terms, delivery info, thank you message…" style="min-height:70px"></textarea>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Customer Note <span style="color:var(--text-muted);font-weight:400">(printed on customer section)</span></label>
+                    <textarea name="note_customer" placeholder="e.g. Thank you for your order!" style="min-height:60px"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Seller Note <span style="color:var(--text-muted);font-weight:400">(terms, refund policy etc)</span></label>
+                    <textarea name="note_seller" placeholder="e.g. No refund after 7 days" style="min-height:60px"></textarea>
+                </div>
             </div>
         </div>
     </div>

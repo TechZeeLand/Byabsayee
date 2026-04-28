@@ -10,6 +10,15 @@ $statusColors = [
     'cancelled' => ['badge-gray',  'Cancelled'],
 ];
 [$sc, $sl] = $statusColors[$invoice['status']] ?? ['badge-gray','Unknown'];
+
+// Load privilege for customer if any
+$privilege = null;
+if ($customer && $customer['privilege_id']) {
+    $privilege = \App\Helpers\Database::row(
+        'SELECT * FROM customer_privileges WHERE id=?', [$customer['privilege_id']]
+    );
+}
+
 ob_start();
 ?>
 
@@ -28,11 +37,8 @@ ob_start();
         <p><?= ucfirst($invoice['type']) ?> invoice · <?= format_date($invoice['date']) ?></p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <!-- PDF link (Phase 4) -->
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/pdf"
-           class="btn btn-secondary" target="_blank">
-            📄 Download PDF
-        </a>
+           class="btn btn-secondary" target="_blank">📄 Download PDF</a>
         <?php if ($invoice['status'] === 'draft'): ?>
         <form method="POST" action="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/sent">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
@@ -50,20 +56,36 @@ ob_start();
     </div>
 </div>
 
+<!-- Privilege hint banner -->
+<?php if ($privilege && $invoice['type'] === 'sale'): ?>
+<div style="background:var(--green-bg);border:1px solid #bbf7d0;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--green)">
+    🎫 <strong><?= e($customer['name']) ?></strong> has the
+    <strong><?= e($privilege['name']) ?></strong> privilege —
+    <?= $privilege['discount_type'] === 'percent'
+        ? $privilege['discount_value'].'% discount'
+        : '৳'.number_format($privilege['discount_value'],2).' fixed discount' ?>
+    applies to this customer.
+</div>
+<?php endif; ?>
+
 <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start">
 
-    <!-- LEFT: invoice body -->
+    <!-- LEFT -->
     <div style="display:flex;flex-direction:column;gap:16px">
 
-        <!-- Business + party info -->
+        <!-- Business + party -->
         <div class="card">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
                 <div>
                     <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px">From</p>
                     <div style="font-size:14px;line-height:1.7">
                         <strong><?= e($details['business_name'] ?? $book['name']) ?></strong><br>
-                        <?php if ($details['phone']): ?><?= e($details['phone']) ?><br><?php endif; ?>
-                        <?php if ($details['address']): ?><?= nl2br(e($details['address'])) ?><br><?php endif; ?>
+                        <?php if ($book['phone'] ?? $details['phone'] ?? ''): ?>
+                            <?= e($book['phone'] ?? $details['phone']) ?><br>
+                        <?php endif; ?>
+                        <?php if ($book['address'] ?? $details['address'] ?? ''): ?>
+                            <?= nl2br(e($book['address'] ?? $details['address'])) ?><br>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div>
@@ -95,6 +117,7 @@ ob_start();
                         <tr>
                             <th>#</th>
                             <th>Item</th>
+                            <th>Color/Size</th>
                             <th style="text-align:right">Qty</th>
                             <th style="text-align:right">Price</th>
                             <th style="text-align:right">Disc%</th>
@@ -106,9 +129,14 @@ ob_start();
                     <tr>
                         <td class="td-muted"><?= $n + 1 ?></td>
                         <td style="font-weight:500"><?= e($item['description']) ?></td>
-                        <td style="text-align:right" class="td-muted"><?= rtrim(rtrim(number_format($item['qty'],3),'0'),'.') ?></td>
+                        <td class="td-muted"><?= $item['variant'] ? e($item['variant']) : '—' ?></td>
+                        <td style="text-align:right" class="td-muted">
+                            <?= rtrim(rtrim(number_format($item['qty'],3),'0'),'.') ?>
+                        </td>
                         <td style="text-align:right"><?= format_money($item['unit_price']) ?></td>
-                        <td style="text-align:right" class="td-muted"><?= $item['discount_pct'] > 0 ? $item['discount_pct'].'%' : '—' ?></td>
+                        <td style="text-align:right" class="td-muted">
+                            <?= $item['discount_pct'] > 0 ? $item['discount_pct'].'%' : '—' ?>
+                        </td>
                         <td style="text-align:right;font-weight:600"><?= format_money($item['line_total']) ?></td>
                     </tr>
                     <?php endforeach; ?>
@@ -118,7 +146,7 @@ ob_start();
 
             <!-- Totals -->
             <div style="display:flex;justify-content:flex-end;margin-top:16px">
-                <div style="width:260px;font-size:14px;display:flex;flex-direction:column;gap:6px">
+                <div style="width:280px;font-size:14px;display:flex;flex-direction:column;gap:6px">
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:var(--text-muted)">Subtotal</span>
                         <span><?= format_money($invoice['subtotal']) ?></span>
@@ -129,6 +157,18 @@ ob_start();
                         <span style="color:var(--red)">− <?= format_money($invoice['discount']) ?></span>
                     </div>
                     <?php endif; ?>
+                    <?php if (($invoice['points_discount'] ?? 0) > 0): ?>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">Points</span>
+                        <span style="color:var(--red)">− <?= format_money($invoice['points_discount']) ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (($invoice['delivery_charge'] ?? 0) > 0): ?>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">Delivery</span>
+                        <span><?= format_money($invoice['delivery_charge']) ?></span>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($invoice['tax'] > 0): ?>
                     <div style="display:flex;justify-content:space-between">
                         <span style="color:var(--text-muted)">Tax</span>
@@ -136,7 +176,7 @@ ob_start();
                     </div>
                     <?php endif; ?>
                     <div style="display:flex;justify-content:space-between;border-top:2px solid var(--border);padding-top:8px;font-size:16px;font-weight:600">
-                        <span>Total</span>
+                        <span>Grand Total</span>
                         <span style="color:var(--brand)"><?= format_money($invoice['total']) ?></span>
                     </div>
                     <div style="display:flex;justify-content:space-between">
@@ -145,25 +185,59 @@ ob_start();
                     </div>
                     <div style="display:flex;justify-content:space-between;font-weight:600">
                         <span>Balance Due</span>
-                        <span style="color:<?= $due > 0 ? 'var(--red)' : 'var(--green)' ?>"><?= format_money($due) ?></span>
+                        <span style="color:<?= $due>0?'var(--red)':'var(--green)' ?>"><?= format_money($due) ?></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <?php if ($invoice['notes']): ?>
+        <!-- Delivery info -->
+        <?php if ($invoice['delivery_method'] || $invoice['payment_method']): ?>
         <div class="card">
-            <p class="card-title">Notes</p>
-            <p style="font-size:13px;color:var(--text-muted)"><?= nl2br(e($invoice['notes'])) ?></p>
+            <div style="display:flex;gap:24px;font-size:13px">
+                <?php if ($invoice['delivery_method']): ?>
+                <div>
+                    <span style="color:var(--text-muted)">Delivery:</span>
+                    <strong><?= e($invoice['delivery_method']) ?></strong>
+                </div>
+                <?php endif; ?>
+                <?php if ($invoice['payment_method']): ?>
+                <div>
+                    <span style="color:var(--text-muted)">Payment:</span>
+                    <strong><?= e($invoice['payment_method']) ?></strong>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Two notes -->
+        <?php
+        $noteCustomer = $invoice['note_customer'] ?? $invoice['notes'] ?? '';
+        $noteSeller   = $invoice['note_seller']   ?? '';
+        if ($noteCustomer || $noteSeller):
+        ?>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <?php if ($noteCustomer): ?>
+            <div class="card">
+                <p class="card-title">Customer Note</p>
+                <p style="font-size:13px;color:var(--text-muted)"><?= nl2br(e($noteCustomer)) ?></p>
+            </div>
+            <?php endif; ?>
+            <?php if ($noteSeller): ?>
+            <div class="card">
+                <p class="card-title">Seller Note</p>
+                <p style="font-size:13px;color:var(--text-muted)"><?= nl2br(e($noteSeller)) ?></p>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
     </div>
 
-    <!-- RIGHT: payment status + info -->
+    <!-- RIGHT: payment summary -->
     <div style="display:flex;flex-direction:column;gap:12px">
 
-        <!-- Payment summary card -->
         <div class="card">
             <p class="card-title">Payment</p>
             <div style="display:flex;flex-direction:column;gap:10px">
@@ -191,7 +265,6 @@ ob_start();
             </div>
         </div>
 
-        <!-- Invoice meta -->
         <div class="card">
             <p class="card-title">Details</p>
             <div style="font-size:13px;display:flex;flex-direction:column;gap:6px">
@@ -231,19 +304,26 @@ ob_start();
                 <div class="form-group full">
                     <label>Payment Method</label>
                     <select name="method">
+                        <?php
+                        $pMethods = \App\Helpers\Database::query(
+                            'SELECT label FROM invoice_method_options WHERE book_id=? AND type="payment" ORDER BY sort_order',
+                            [$book['id']]
+                        );
+                        foreach ($pMethods as $pm):
+                        ?>
+                        <option value="<?= e($pm['label']) ?>"><?= e($pm['label']) ?></option>
+                        <?php endforeach; ?>
+                        <?php if (empty($pMethods)): ?>
                         <option value="cash">Cash</option>
-                        <option value="card">Card</option>
                         <option value="bkash">bKash</option>
                         <option value="nagad">Nagad</option>
-                        <option value="rocket">Rocket</option>
                         <option value="bank_transfer">Bank Transfer</option>
-                        <option value="cheque">Cheque</option>
-                        <option value="credit">Credit</option>
+                        <?php endif; ?>
                     </select>
                 </div>
                 <div class="form-group full">
                     <label>Note (optional)</label>
-                    <input type="text" name="note" placeholder="e.g. Received from owner">
+                    <input type="text" name="note" placeholder="e.g. Received in full">
                 </div>
             </div>
             <div class="modal-footer">
