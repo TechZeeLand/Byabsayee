@@ -82,3 +82,9 @@ $router->post('/books/{id}/invoices/{invoice_id}/delete',       [InvoiceControll
 
 // Invoice PDF
 $router->get( '/books/{id}/invoices/{invoice_id}/pdf', [InvoiceController::class, 'pdf']);
+
+// Customer privileges
+$router->get( '/books/{id}/privileges',                      [\App\Controllers\PrivilegeController::class, 'index']);
+$router->post('/books/{id}/privileges/add',                  [\App\Controllers\PrivilegeController::class, 'store']);
+$router->post('/books/{id}/privileges/{priv_id}/edit',       [\App\Controllers\PrivilegeController::class, 'update']);
+$router->post('/books/{id}/privileges/{priv_id}/delete',     [\App\Controllers\PrivilegeController::class, 'delete']);
