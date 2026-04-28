@@ -79,3 +79,6 @@ $router->get( '/books/{id}/invoices/{invoice_id}',              [InvoiceControll
 $router->post('/books/{id}/invoices/{invoice_id}/payment',      [InvoiceController::class, 'recordPayment']);
 $router->post('/books/{id}/invoices/{invoice_id}/sent',         [InvoiceController::class, 'markSent']);
 $router->post('/books/{id}/invoices/{invoice_id}/delete',       [InvoiceController::class, 'delete']);
+
+// Invoice PDF
+$router->get( '/books/{id}/invoices/{invoice_id}/pdf', [InvoiceController::class, 'pdf']);
