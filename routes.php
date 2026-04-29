@@ -88,3 +88,9 @@ $router->get( '/books/{id}/privileges',                      [\App\Controllers\P
 $router->post('/books/{id}/privileges/add',                  [\App\Controllers\PrivilegeController::class, 'store']);
 $router->post('/books/{id}/privileges/{priv_id}/edit',       [\App\Controllers\PrivilegeController::class, 'update']);
 $router->post('/books/{id}/privileges/{priv_id}/delete',     [\App\Controllers\PrivilegeController::class, 'delete']);
+
+// Product category
+$router->post('/books/{id}/products/category/add',          [\App\Controllers\ProductController::class, 'storeCategory']);
+
+// Product lookup API (barcode / product code search)
+$router->get( '/books/{id}/products/lookup',                [\App\Controllers\ProductController::class, 'lookup']);

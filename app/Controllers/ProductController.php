@@ -4,12 +4,14 @@ use App\Helpers\Database;
 
 class ProductController
 {
+    // ── List ─────────────────────────────────────────────────────────────────
     public function index(array $params): void
     {
         if (guest()) redirect('/login');
         $book   = $this->getBookOrFail($params['id']);
-        $search = trim($_GET['q'] ?? '');
-        $filter = $_GET['filter'] ?? 'all';
+        $search = trim($_GET['q']      ?? '');
+        $filter = $_GET['filter']      ?? 'all';
+        $catId  = !empty($_GET['cat']) ? (int)$_GET['cat'] : 0;
 
         $sql = 'SELECT p.*, c.name AS category_name
                 FROM products p
@@ -18,23 +20,22 @@ class ProductController
         $p = [$book['id']];
 
         if ($search) {
-            $sql .= ' AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)';
+            $sql .= ' AND (p.name LIKE ? OR p.sku LIKE ? OR p.product_code LIKE ? OR p.barcode LIKE ?)';
             $like = '%'.$search.'%';
-            $p    = array_merge($p, [$like, $like, $like]);
+            $p    = array_merge($p, [$like,$like,$like,$like]);
         }
-        if ($filter === 'low')  $sql .= ' AND p.stock_qty <= p.low_stock_alert AND p.stock_qty > 0';
-        if ($filter === 'out')  $sql .= ' AND p.stock_qty <= 0';
-
+        if ($catId)           $sql .= ' AND p.category_id='.intval($catId);
+        if ($filter === 'low') $sql .= ' AND p.stock_qty<=p.low_stock_alert AND p.stock_qty>0';
+        if ($filter === 'out') $sql .= ' AND p.stock_qty<=0';
         $sql .= ' ORDER BY p.name';
-        $products = Database::query($sql, $p);
 
-        $categories = Database::query('SELECT * FROM categories WHERE book_id=? ORDER BY name', [$book['id']]);
-
-        $summary = Database::row(
+        $products   = Database::query($sql, $p);
+        $categories = Database::query('SELECT * FROM categories WHERE book_id=? AND parent_id IS NULL ORDER BY name',[$book['id']]);
+        $summary    = Database::row(
             'SELECT COUNT(*) AS total_products,
-                    COALESCE(SUM(stock_qty * buy_price),0) AS stock_value,
-                    SUM(CASE WHEN stock_qty <= 0 THEN 1 ELSE 0 END) AS out_of_stock,
-                    SUM(CASE WHEN stock_qty <= low_stock_alert AND stock_qty > 0 THEN 1 ELSE 0 END) AS low_stock
+                    COALESCE(SUM(stock_qty*buy_price),0) AS stock_value,
+                    SUM(CASE WHEN stock_qty<=0 THEN 1 ELSE 0 END) AS out_of_stock,
+                    SUM(CASE WHEN stock_qty<=low_stock_alert AND stock_qty>0 THEN 1 ELSE 0 END) AS low_stock
              FROM products WHERE book_id=? AND deleted_at IS NULL',
             [$book['id']]
         );
@@ -42,6 +43,7 @@ class ProductController
         require BASE_PATH . '/views/business/products/index.php';
     }
 
+    // ── Store new product ─────────────────────────────────────────────────────
     public function store(array $params): void
     {
         if (guest()) redirect('/login');
@@ -52,7 +54,9 @@ class ProductController
         if (!$name) redirect('/books/'.$book['id'].'/products', ['error' => 'Product name is required.']);
 
         $image = null;
-        if (!empty($_FILES['image']['name'])) $image = $this->handleImageUpload($_FILES['image']);
+        if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === 0) {
+            $image = $this->handleImageUpload($_FILES['image']);
+        }
 
         Database::run(
             'INSERT INTO products
@@ -63,22 +67,33 @@ class ProductController
                 $book['id'],
                 !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null,
                 $name,
-                trim($_POST['sku']      ?? '') ?: null,
-                trim($_POST['barcode']  ?? '') ?: null,
-                trim($_POST['unit']     ?? 'pcs'),
-                (float)($_POST['buy_price']      ?? 0),
-                (float)($_POST['sell_price']     ?? 0),
-                (float)($_POST['stock_qty']      ?? 0),
-                (float)($_POST['low_stock_alert']?? 5),
+                trim($_POST['sku']     ?? '') ?: null,
+                trim($_POST['barcode'] ?? '') ?: null,
+                trim($_POST['unit']    ?? 'pcs'),
+                (float)($_POST['buy_price']       ?? 0),
+                (float)($_POST['sell_price']      ?? 0),
+                (float)($_POST['stock_qty']       ?? 0),
+                (float)($_POST['low_stock_alert'] ?? 5),
                 trim($_POST['description'] ?? '') ?: null,
-                $image,
-                now()
+                $image, now()
             ]
         );
+        $productId = Database::lastId();
 
-        redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" added to stock.']);
+        // Auto-generate product code
+        $code = 'PRD-' . str_pad($productId, 5, '0', STR_PAD_LEFT);
+        Database::run('UPDATE products SET product_code=? WHERE id=?', [$code, $productId]);
+
+        // Save variants if provided
+        $this->saveVariants($productId, $_POST['variants'] ?? []);
+
+        // Save category (create new if typed)
+        $this->handleCategory($book['id'], $_POST, $productId);
+
+        redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" added. Code: '.$code]);
     }
 
+    // ── Update product ────────────────────────────────────────────────────────
     public function update(array $params): void
     {
         if (guest()) redirect('/login');
@@ -90,7 +105,7 @@ class ProductController
         if (!$name) redirect('/books/'.$book['id'].'/products', ['error' => 'Product name is required.']);
 
         $image = $product['image'];
-        if (!empty($_FILES['image']['name'])) {
+        if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === 0) {
             $new = $this->handleImageUpload($_FILES['image']);
             if ($new) $image = $new;
         }
@@ -108,14 +123,18 @@ class ProductController
                 (float)($_POST['sell_price']      ?? 0),
                 (float)($_POST['low_stock_alert'] ?? 5),
                 trim($_POST['description'] ?? '') ?: null,
-                $image,
-                $product['id']
+                $image, $product['id']
             ]
         );
+
+        // Replace variants
+        Database::run('DELETE FROM product_variants WHERE product_id=?', [$product['id']]);
+        $this->saveVariants($product['id'], $_POST['variants'] ?? []);
 
         redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" updated.']);
     }
 
+    // ── Adjust stock ──────────────────────────────────────────────────────────
     public function adjustStock(array $params): void
     {
         if (guest()) redirect('/login');
@@ -134,10 +153,9 @@ class ProductController
             : max(0, $product['stock_qty'] - $qty);
 
         Database::run('UPDATE products SET stock_qty=? WHERE id=?', [$newQty, $product['id']]);
-
         Database::run(
             'INSERT INTO stock_adjustments (product_id,type,qty,note,created_by,created_at) VALUES (?,?,?,?,?,?)',
-            [$product['id'], $type, $qty, $note ?: null, auth()['id'], now()]
+            [$product['id'],$type,$qty,$note ?: null,auth()['id'],now()]
         );
 
         redirect('/books/'.$book['id'].'/products', [
@@ -145,40 +163,113 @@ class ProductController
         ]);
     }
 
+    // ── Delete ────────────────────────────────────────────────────────────────
     public function delete(array $params): void
     {
         if (guest()) redirect('/login');
         csrf_verify();
         $book    = $this->getBookOrFail($params['id']);
         $product = $this->getProductOrFail($params['product_id'], $book['id']);
-
         Database::run('UPDATE products SET deleted_at=? WHERE id=?', [now(), $product['id']]);
         redirect('/books/'.$book['id'].'/products', ['success' => '"'.$product['name'].'" deleted.']);
+    }
+
+    // ── Category store ────────────────────────────────────────────────────────
+    public function storeCategory(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+
+        $name     = trim($_POST['name']      ?? '');
+        $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
+
+        if (!$name) redirect('/books/'.$book['id'].'/products', ['error' => 'Category name is required.']);
+
+        Database::run(
+            'INSERT INTO categories (book_id,parent_id,name,created_at) VALUES (?,?,?,?)',
+            [$book['id'], $parentId, $name, now()]
+        );
+
+        redirect('/books/'.$book['id'].'/products', ['success' => 'Category "'.$name.'" created.']);
+    }
+
+    // ── API: lookup product by code/barcode (for invoice barcode scan) ─────────
+    public function lookup(array $params): void
+    {
+        if (guest()) json_response(['error' => 'Unauthorized'], 401);
+        $book = $this->getBookOrFail($params['id']);
+
+        $q = trim($_GET['q'] ?? '');
+        if (!$q) json_response(['error' => 'No query'], 400);
+
+        $product = Database::row(
+            'SELECT * FROM products
+             WHERE book_id=? AND deleted_at IS NULL
+               AND (product_code=? OR barcode=? OR sku=?)',
+            [$book['id'], $q, $q, $q]
+        );
+
+        if (!$product) json_response(['found' => false]);
+
+        $variants = Database::query('SELECT * FROM product_variants WHERE product_id=?', [$product['id']]);
+        json_response(['found' => true, 'product' => $product, 'variants' => $variants]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+    private function saveVariants(int $productId, array $variants): void
+    {
+        foreach ($variants as $v) {
+            $label = trim($v['label'] ?? '');
+            $value = trim($v['value'] ?? '');
+            if (!$label || !$value) continue;
+            Database::run(
+                'INSERT INTO product_variants (product_id,label,value,sku,price_adj,stock_qty) VALUES (?,?,?,?,?,?)',
+                [
+                    $productId, $label, $value,
+                    trim($v['sku']       ?? '') ?: null,
+                    (float)($v['price_adj'] ?? 0),
+                    (float)($v['stock_qty'] ?? 0),
+                ]
+            );
+        }
+    }
+
+    private function handleCategory(int $bookId, array $post, int $productId): void
+    {
+        // If user typed a new category name
+        $newCat = trim($post['new_category'] ?? '');
+        if ($newCat) {
+            Database::run('INSERT INTO categories (book_id,name,created_at) VALUES (?,?,?)',
+                [$bookId, $newCat, now()]);
+            $catId = Database::lastId();
+            Database::run('UPDATE products SET category_id=? WHERE id=?', [$catId, $productId]);
+        }
     }
 
     private function handleImageUpload(array $file): ?string
     {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['jpg','jpeg','png','webp']) || $file['error'] !== 0 || $file['size'] > 5*1024*1024) return null;
+        if (!in_array($ext,['jpg','jpeg','png','webp']) || $file['size'] > 5*1024*1024) return null;
+
         $dir = config('upload.path').'/products';
         if (!is_dir($dir)) mkdir($dir, 0755, true);
+        if (!is_writable($dir)) return null;
+
         $filename = date('Ymd_His').'_'.bin2hex(random_bytes(4)).'.'.$ext;
         return move_uploaded_file($file['tmp_name'], $dir.'/'.$filename) ? 'products/'.$filename : null;
     }
 
     private function getBookOrFail(string $id): array
     {
-        $book = Database::row(
-            'SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL AND type="business"',
-            [$id, auth()['id']]
-        );
+        $book = Database::row('SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL AND type="business"', [$id,auth()['id']]);
         if (!$book) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $book;
     }
 
     private function getProductOrFail(string $pid, int $bookId): array
     {
-        $p = Database::row('SELECT * FROM products WHERE id=? AND book_id=? AND deleted_at IS NULL', [$pid, $bookId]);
+        $p = Database::row('SELECT * FROM products WHERE id=? AND book_id=? AND deleted_at IS NULL', [$pid,$bookId]);
         if (!$p) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $p;
     }
