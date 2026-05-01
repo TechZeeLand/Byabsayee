@@ -8,12 +8,18 @@ use App\Controllers\CustomerController;
 use App\Controllers\SupplierController;
 use App\Controllers\ProductController;
 use App\Controllers\InvoiceController;
+use App\Controllers\PrivilegeController;
+use App\Controllers\PublicInvoiceController;
+use App\Controllers\PosController;
+use App\Controllers\BookSearchController;
 
-// =====================================================================
-// PUBLIC
-// =====================================================================
+// =============================================================================
+// PUBLIC — no login required
+// =============================================================================
+
 $router->get('/', function() { auth() ? redirect('/dashboard') : redirect('/login'); });
 
+// Auth
 $router->get( '/login',           [AuthController::class, 'showLogin']);
 $router->post('/login',           [AuthController::class, 'login']);
 $router->get( '/register',        [AuthController::class, 'showRegister']);
@@ -25,11 +31,15 @@ $router->get( '/reset-password',  [AuthController::class, 'showResetPassword']);
 $router->post('/reset-password',  [AuthController::class, 'resetPassword']);
 $router->get( '/verify-email',    [AuthController::class, 'verifyEmail']);
 
-// =====================================================================
-// PROTECTED
-// =====================================================================
+// Public invoice — by token
+$router->get('/invoice/{token}',                              [PublicInvoiceController::class, 'show']);
+// Public invoice — by business name + invoice number
+$router->get('/Business/{slug}/Invoice/{invoice_no}',         [PublicInvoiceController::class, 'showByNo']);
 
-// Dashboard
+// =============================================================================
+// PROTECTED
+// =============================================================================
+
 $router->get('/dashboard', [DashboardController::class, 'index']);
 
 // Books
@@ -41,56 +51,61 @@ $router->get( '/books/{id}/edit',   [BookController::class, 'edit']);
 $router->post('/books/{id}/edit',   [BookController::class, 'update']);
 $router->post('/books/{id}/delete', [BookController::class, 'delete']);
 
-// Entries (personal books)
+// Book search
+$router->get('/books/{id}/search',  [BookSearchController::class, 'search']);
+
+// Entries (personal)
 $router->post('/books/{id}/entries/add',               [EntryController::class, 'store']);
 $router->post('/books/{id}/entries/{entry_id}/delete', [EntryController::class, 'delete']);
 
-// Contacts (personal books)
+// Contacts (personal)
 $router->get( '/books/{id}/contacts',                       [ContactController::class, 'index']);
 $router->post('/books/{id}/contacts/add',                   [ContactController::class, 'store']);
 $router->post('/books/{id}/contacts/{contact_id}/delete',   [ContactController::class, 'delete']);
 
-// Customers (business books)
+// Customers
 $router->get( '/books/{id}/customers',                          [CustomerController::class, 'index']);
 $router->post('/books/{id}/customers/add',                      [CustomerController::class, 'store']);
 $router->get( '/books/{id}/customers/{customer_id}',            [CustomerController::class, 'show']);
 $router->post('/books/{id}/customers/{customer_id}/edit',       [CustomerController::class, 'update']);
 $router->post('/books/{id}/customers/{customer_id}/delete',     [CustomerController::class, 'delete']);
+$router->post('/books/{id}/customers/{customer_id}/privileges', [CustomerController::class, 'updatePrivileges']);
 
-// Suppliers (business books)
+// Suppliers
 $router->get( '/books/{id}/suppliers',                          [SupplierController::class, 'index']);
 $router->post('/books/{id}/suppliers/add',                      [SupplierController::class, 'store']);
 $router->get( '/books/{id}/suppliers/{supplier_id}',            [SupplierController::class, 'show']);
 $router->post('/books/{id}/suppliers/{supplier_id}/edit',       [SupplierController::class, 'update']);
 $router->post('/books/{id}/suppliers/{supplier_id}/delete',     [SupplierController::class, 'delete']);
 
-// Products (business books)
+// Products
 $router->get( '/books/{id}/products',                           [ProductController::class, 'index']);
 $router->post('/books/{id}/products/add',                       [ProductController::class, 'store']);
 $router->post('/books/{id}/products/{product_id}/edit',         [ProductController::class, 'update']);
 $router->post('/books/{id}/products/{product_id}/adjust',       [ProductController::class, 'adjustStock']);
 $router->post('/books/{id}/products/{product_id}/delete',       [ProductController::class, 'delete']);
+$router->post('/books/{id}/products/category/add',              [ProductController::class, 'storeCategory']);
+$router->get( '/books/{id}/products/lookup',                    [ProductController::class, 'lookup']);
 
-// Invoices (business books)
+// Invoices
 $router->get( '/books/{id}/invoices',                           [InvoiceController::class, 'index']);
 $router->get( '/books/{id}/invoices/create',                    [InvoiceController::class, 'create']);
 $router->post('/books/{id}/invoices/create',                    [InvoiceController::class, 'store']);
 $router->get( '/books/{id}/invoices/{invoice_id}',              [InvoiceController::class, 'show']);
+$router->get( '/books/{id}/invoices/{invoice_id}/pdf',          [InvoiceController::class, 'pdf']);
 $router->post('/books/{id}/invoices/{invoice_id}/payment',      [InvoiceController::class, 'recordPayment']);
 $router->post('/books/{id}/invoices/{invoice_id}/sent',         [InvoiceController::class, 'markSent']);
 $router->post('/books/{id}/invoices/{invoice_id}/delete',       [InvoiceController::class, 'delete']);
 
-// Invoice PDF
-$router->get( '/books/{id}/invoices/{invoice_id}/pdf', [InvoiceController::class, 'pdf']);
+// POS
+$router->get( '/books/{id}/pos',                                [PosController::class, 'show']);
+$router->post('/books/{id}/pos',                                [PosController::class, 'store']);
 
-// Customer privileges
-$router->get( '/books/{id}/privileges',                      [\App\Controllers\PrivilegeController::class, 'index']);
-$router->post('/books/{id}/privileges/add',                  [\App\Controllers\PrivilegeController::class, 'store']);
-$router->post('/books/{id}/privileges/{priv_id}/edit',       [\App\Controllers\PrivilegeController::class, 'update']);
-$router->post('/books/{id}/privileges/{priv_id}/delete',     [\App\Controllers\PrivilegeController::class, 'delete']);
+// Privileges
+$router->get( '/books/{id}/privileges',                         [PrivilegeController::class, 'index']);
+$router->post('/books/{id}/privileges/add',                     [PrivilegeController::class, 'store']);
+$router->post('/books/{id}/privileges/{priv_id}/edit',          [PrivilegeController::class, 'update']);
+$router->post('/books/{id}/privileges/{priv_id}/delete',        [PrivilegeController::class, 'delete']);
 
-// Product category
-$router->post('/books/{id}/products/category/add',          [\App\Controllers\ProductController::class, 'storeCategory']);
-
-// Product lookup API (barcode / product code search)
-$router->get( '/books/{id}/products/lookup',                [\App\Controllers\ProductController::class, 'lookup']);
+// Invoice attachment upload
+$router->post('/books/{id}/invoices/{invoice_id}/attachment', [\App\Controllers\InvoiceController::class, 'uploadAttachment']);

@@ -123,8 +123,8 @@ class InvoiceController
                  subtotal,discount,points_discount,delivery_charge,rounding,tax,
                  total,paid,status,note_customer,note_seller,
                  delivery_method,payment_method,theme_color,currency_symbol,currency_code,
-                 created_by,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?)',
+                 public_token,created_by,created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
             [
                 $book['id'],$type,$invoiceNo,$customerId,$supplierId,$date,$dueDate,
                 $subtotal,$discount,$pointsDiscount,$deliveryCharge,$rounding,$tax,
@@ -132,7 +132,7 @@ class InvoiceController
                 $noteCustomer ?: null,$noteSeller ?: null,
                 $deliveryMethod ?: null,$paymentMethod ?: null,
                 $themeColor,$currencySymbol,$currencyCode,
-                auth()['id'],now()
+                bin2hex(random_bytes(20)),auth()['id'],now()
             ]
         );
         $invoiceId = Database::lastId();
@@ -160,6 +160,11 @@ class InvoiceController
         $counterCol = $type === 'purchase' ? 'invoice_counter_purchase' : 'invoice_counter';
         Database::run("UPDATE book_business_details SET {$counterCol}={$counterCol}+1 WHERE book_id=?",
             [$book['id']]);
+
+        // Handle supplier invoice attachment (purchase invoices)
+        if ($type === 'purchase' && !empty($_FILES['attachment']['name']) && $_FILES['attachment']['error'] === 0) {
+            $this->saveAttachment($invoiceId, $_FILES['attachment']);
+        }
 
         redirect('/books/'.$book['id'].'/invoices/'.$invoiceId, ['success' => 'Invoice '.$invoiceNo.' created.']);
     }
@@ -235,6 +240,42 @@ class InvoiceController
         $invoice = $this->getInvoiceOrFail($params['invoice_id'], $book['id']);
         Database::run('UPDATE invoices SET deleted_at=? WHERE id=?', [now(),$invoice['id']]);
         redirect('/books/'.$book['id'].'/invoices', ['success' => 'Invoice deleted.']);
+    }
+
+
+    public function uploadAttachment(array $params): void
+    {
+        if (guest()) redirect("/login");
+        csrf_verify();
+        $book    = $this->getBookOrFail($params["id"]);
+        $invoice = $this->getInvoiceOrFail($params["invoice_id"], $book["id"]);
+        if (!empty($_FILES["attachment"]["name"]) && $_FILES["attachment"]["error"] === 0) {
+            $this->saveAttachment($invoice["id"], $_FILES["attachment"]);
+            redirect("/books/".$book["id"]."/invoices/".$invoice["id"], ["success" => "Attachment uploaded."]);
+        }
+        redirect("/books/".$book["id"]."/invoices/".$invoice["id"], ["error" => "No file selected."]);
+    }
+
+    private function saveAttachment(int $invoiceId, array $file): void
+    {
+        $allowed = ['pdf','jpg','jpeg','png','webp'];
+        $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed) || $file['size'] > 10*1024*1024) return;
+
+        $dir = config('upload.path') . '/attachments';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        if (!is_writable($dir)) return;
+
+        $filename = 'inv_'.$invoiceId.'_'.date('Ymd_His').'_'.bin2hex(random_bytes(4)).'.'.$ext;
+        $dest     = $dir . '/' . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $dest)) {
+            Database::run(
+                'INSERT INTO invoice_attachments (invoice_id, filename, path, size, created_at)
+                 VALUES (?,?,?,?,?)',
+                [$invoiceId, $file['name'], 'attachments/'.$filename, $file['size'], now()]
+            );
+        }
     }
 
     private function getBookOrFail(string $id): array

@@ -139,3 +139,32 @@ class CustomerController
         return $c;
     }
 }
+
+    // Update multi-privileges  →  POST /books/{id}/customers/{customer_id}/privileges
+    public function updatePrivileges(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book     = $this->getBookOrFail($params['id']);
+        $customer = $this->getCustomerOrFail($params['customer_id'], $book['id']);
+
+        // Remove all existing assignments
+        Database::run('DELETE FROM customer_privilege_assignments WHERE customer_id=?', [$customer['id']]);
+
+        // Add new ones
+        $selected = $_POST['privilege_ids'] ?? [];
+        foreach ($selected as $privId) {
+            $privId = (int)$privId;
+            if (!$privId) continue;
+            // Verify privilege belongs to this book
+            $priv = Database::row('SELECT id FROM customer_privileges WHERE id=? AND book_id=?', [$privId, $book['id']]);
+            if ($priv) {
+                Database::run(
+                    'INSERT IGNORE INTO customer_privilege_assignments (customer_id,privilege_id) VALUES (?,?)',
+                    [$customer['id'], $privId]
+                );
+            }
+        }
+
+        redirect('/books/'.$book['id'].'/customers/'.$customer['id'], ['success' => 'Privileges updated.']);
+    }

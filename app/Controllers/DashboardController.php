@@ -7,19 +7,31 @@ class DashboardController
     public function index(): void
     {
         if (guest()) redirect('/login');
+
         $userId = auth()['id'];
+
+        // For personal books: total_in/out = entries
+        // For business books: total_in = paid sales, total_out = paid purchases
         $books = Database::query(
             'SELECT b.*,
-                COALESCE(SUM(CASE WHEN e.type="in"  THEN e.amount ELSE 0 END), 0) AS total_in,
-                COALESCE(SUM(CASE WHEN e.type="out" THEN e.amount ELSE 0 END), 0) AS total_out,
-                COUNT(DISTINCT e.id) AS entry_count
+                CASE
+                    WHEN b.type = "personal" THEN
+                        COALESCE((SELECT SUM(e.amount) FROM entries e WHERE e.book_id=b.id AND e.type="in"  AND e.deleted_at IS NULL),0)
+                    ELSE
+                        COALESCE((SELECT SUM(i.total) FROM invoices i WHERE i.book_id=b.id AND i.type="sale"     AND i.status="paid" AND i.deleted_at IS NULL),0)
+                END AS total_in,
+                CASE
+                    WHEN b.type = "personal" THEN
+                        COALESCE((SELECT SUM(e.amount) FROM entries e WHERE e.book_id=b.id AND e.type="out" AND e.deleted_at IS NULL),0)
+                    ELSE
+                        COALESCE((SELECT SUM(i.total) FROM invoices i WHERE i.book_id=b.id AND i.type="purchase" AND i.status="paid" AND i.deleted_at IS NULL),0)
+                END AS total_out
              FROM books b
-             LEFT JOIN entries e ON e.book_id = b.id AND e.deleted_at IS NULL
-             WHERE b.user_id = ? AND b.deleted_at IS NULL
-             GROUP BY b.id
+             WHERE b.user_id=? AND b.deleted_at IS NULL
              ORDER BY b.created_at DESC',
             [$userId]
         );
+
         require BASE_PATH . '/views/dashboard/index.php';
     }
 }
