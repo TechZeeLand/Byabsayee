@@ -1,0 +1,5 @@
+/vendor/
+/storage/sessions/
+/node_modules/
+/.env
+
