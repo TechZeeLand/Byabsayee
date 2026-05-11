@@ -48,7 +48,6 @@ services:
     container_name: byabsayee_db
     restart: always
     environment:
-      environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
