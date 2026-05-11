@@ -47,6 +47,11 @@ function flash(string $key, ?string $value = null): ?string
 
 function csrf_token(): string
 {
+    // Ensure session is started before accessing $_SESSION
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
     if (empty($_SESSION['_csrf_token'])) {
         $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
     }
@@ -55,8 +60,16 @@ function csrf_token(): string
 
 function csrf_verify(): void
 {
+    // Ensure session is started before accessing $_SESSION
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
     $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (!hash_equals($_SESSION['_csrf_token'] ?? '', $token)) {
+    $sessionToken = $_SESSION['_csrf_token'] ?? '';
+    
+    // Both token and sessionToken must be non-empty and match
+    if (empty($token) || empty($sessionToken) || !hash_equals($sessionToken, $token)) {
         http_response_code(403);
         die('Invalid CSRF token. Please go back and try again.');
     }
