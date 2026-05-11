@@ -45,13 +45,13 @@ services:
     restart: unless-stopped
 
   php-fpm:
-  image: php:8.2-fpm-alpine
-  container_name: byabsayee_php
-  volumes:
-    - ./:/Sites/byabsayee
-  networks:
-    - byabsayee
-  restart: unless-stopped  
+    image: php:8.2-fpm-alpine
+    container_name: byabsayee_php
+    volumes:
+      - ./:/Sites/byabsayee
+    networks:
+      - byabsayee
+    restart: unless-stopped  
 
   db:
     image: mariadb:10.11
