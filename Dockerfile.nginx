@@ -1,0 +1,6 @@
+FROM nginx:stable-alpine
+
+# Bake the config directly into the image — no bind mount needed.
+# This avoids the Portainer/Docker "file vs directory" mount error that
+# happens when deploying from Git and Docker can't pre-verify the file exists.
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
