@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: byabsayee
     volumes:
-      - /Sites/byabsayee:/Sites/byabsayee
+      - .:/Sites/byabsayee          # FIX: was /Sites/byabsayee:/Sites/byabsayee (absolute host path)
     environment:
       - APP_NAME=${APP_NAME}
       - APP_URL=${APP_URL}
@@ -22,8 +22,10 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - APP_KEY=${APP_KEY}
+      - SESSION_NAME=${SESSION_NAME}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - byabsayee
     restart: unless-stopped
@@ -34,23 +36,18 @@ services:
     ports:
       - "1021:1021"
     volumes:
-      - /Sites/byabsayee:/Sites/byabsayee:ro
-      - /Sites/byabsayee/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - .:/Sites/byabsayee:ro                                         # FIX: was /Sites/byabsayee:... (absolute host path)
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro        # FIX: was /Sites/byabsayee/nginx/... (absolute host path)
     depends_on:
       - byabsayee
-      - php-fpm
+      # FIX: removed dependency on php-fpm (that service is deleted below)
     networks:
       - byabsayee
     restart: unless-stopped
 
-  php-fpm:
-    image: php:8.2-fpm-alpine
-    container_name: byabsayee_php
-    volumes:
-      - /Sites/byabsayee:/Sites/byabsayee
-    networks:
-      - byabsayee
-    restart: unless-stopped  
+  # FIX: DELETED the bare php-fpm service. It was php:8.2-fpm-alpine with NO
+  # extensions (no pdo_mysql, gd, mbstring, etc.), was never used by nginx
+  # (nginx calls byabsayee:9000, not php-fpm:9000), and wasted resources.
 
   db:
     image: mariadb:10.11
@@ -64,7 +61,7 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASS}
     volumes:
-      - /Sites/byabsayee/mariadb/data:/var/lib/mysql
+      - ./mariadb/data:/var/lib/mysql                                  # FIX: was /Sites/byabsayee/mariadb/... (absolute host path)
     networks:
       - byabsayee
     healthcheck:
