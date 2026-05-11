@@ -3,11 +3,11 @@ version: "3.9"
 services:
   byabsayee:
     build:
-      context: .
+      context: /Sites/byabsayee
       dockerfile: Dockerfile
     container_name: byabsayee
     volumes:
-      - .:/Sites/byabsayee          # PHP-FPM needs the full app (views, config, etc.)
+      - /Sites/byabsayee:/Sites/byabsayee   # absolute path — files are here on this host
     environment:
       - APP_NAME=${APP_NAME}
       - APP_URL=${APP_URL}
@@ -32,15 +32,11 @@ services:
 
   nginx:
     build:
-      context: .
-      dockerfile: Dockerfile.nginx   # public/ and config baked in — NO volume mount needed
+      context: /Sites/byabsayee
+      dockerfile: Dockerfile.nginx   # bakes public/ + config into image, no volume needed
     container_name: byabsayee_nginx
     ports:
       - "1021:1021"
-    # No volumes here — public/ is baked into the image at build time.
-    # This is fine because: static assets (CSS/JS) come from the baked copy,
-    # and PHP execution happens inside the byabsayee container which DOES have
-    # the live volume mount with the full app.
     depends_on:
       - byabsayee
     networks:
