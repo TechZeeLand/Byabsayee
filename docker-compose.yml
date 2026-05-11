@@ -64,7 +64,7 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASS}
     volumes:
-      - ./mariadb/data:/var/lib/mysql
+      - /Sites/byabsayee/mariadb/data:/var/lib/mysql
     networks:
       - byabsayee
     healthcheck:
