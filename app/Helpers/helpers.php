@@ -47,9 +47,7 @@ function flash(string $key, ?string $value = null): ?string
 
 function csrf_token(): string
 {
-    // Session is already started in public/index.php
-    // Only generate token if it doesn't exist
-    if (!isset($_SESSION['_csrf_token']) || empty($_SESSION['_csrf_token'])) {
+    if (empty($_SESSION['_csrf_token'])) {
         $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['_csrf_token'];
@@ -57,24 +55,8 @@ function csrf_token(): string
 
 function csrf_verify(): void
 {
-    // Session is already started in public/index.php
-    $token = trim($_POST['_csrf'] ?? '');
-    $sessionToken = $_SESSION['_csrf_token'] ?? '';
-    
-    // Debug logging to file (remove in production)
-    error_log("CSRF Verify: token from POST = '" . substr($token, 0, 10) . "...'");
-    error_log("CSRF Verify: token from SESSION = '" . substr($sessionToken, 0, 10) . "...'");
-    error_log("CSRF Verify: Session ID = " . session_id());
-    
-    // Both must exist and match
-    if (empty($token) || empty($sessionToken)) {
-        error_log("CSRF Verify: EMPTY TOKEN - POST='" . $token . "' SESSION='" . $sessionToken . "'");
-        http_response_code(403);
-        die('Invalid CSRF token. Please go back and try again.');
-    }
-    
-    if (!hash_equals($sessionToken, $token)) {
-        error_log("CSRF Verify: MISMATCH - Token mismatch detected");
+    $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!hash_equals($_SESSION['_csrf_token'] ?? '', $token)) {
         http_response_code(403);
         die('Invalid CSRF token. Please go back and try again.');
     }
