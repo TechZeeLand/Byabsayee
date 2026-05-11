@@ -57,7 +57,7 @@ services:
     networks:
       - byabsayee
     healthcheck:
-      test: ["CMD-SHELL", "mariadb -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1' || exit 1"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$MYSQL_USER", "-p$MYSQL_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 5
