@@ -9,7 +9,8 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>"><?= e($book['name']) ?></a> <span>›</span>
             <span>Customers</span>
         </div>
-        <h1>Customers</h1>
+        <h1><i class="fa-solid fa-users" style="color:var(--brand)"></i> Customers</h1>
+        <p>Add, edit, remove customers and keep track of all of them</p>
         <p><?= count($customers) ?> customer<?= count($customers) !== 1 ? 's' : '' ?></p>
     </div>
     <button class="btn btn-primary" data-modal="addCustomerModal">+ Add Customer</button>

@@ -11,7 +11,8 @@ $status = $_GET['status'] ?? 'all';
             <a href="/books/<?= $book['id'] ?>"><?= e($book['name']) ?></a> <span>›</span>
             <span>Invoices</span>
         </div>
-        <h1>Invoices</h1>
+        <h1><i class="fa-solid fa-file-invoice" style="color:var(--brand)"></i> Invoices</h1>
+        <p>Add, edit, delete invoices and keep track of all of them</p>
     </div>
     <div style="display:flex;gap:8px">
         <a href="/books/<?= $book['id'] ?>/invoices/create?type=sale" class="btn btn-primary">+ Sale Invoice</a>

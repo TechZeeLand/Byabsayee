@@ -9,7 +9,8 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>">Dashboard</a> <span>›</span>
             <span>Products</span>
         </div>
-        <h1>Products & Stock</h1>
+        <h1><i class="fa-solid fa-box" style="color:var(--brand)"></i> Products & Stock</h1>
+        <p>Add, edit, remove products and keep track of all of them</p>
     </div>
     <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" data-modal="addCategoryModal">+ Category</button>

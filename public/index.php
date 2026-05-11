@@ -58,15 +58,15 @@ if (file_exists(BASE_PATH . '/vendor/autoload.php')) {
 }
 
 // ---- 6. START SESSION -------------------------------------------------------
-$sessionCfg = config('session');
-session_name($sessionCfg['name']);
 session_set_cookie_params([
-    'lifetime' => $sessionCfg['lifetime'],
+    'lifetime' => config('session.lifetime'),
     'path'     => '/',
-    'secure'   => $sessionCfg['secure'],
-    'httponly' => $sessionCfg['httponly'],
-    'samesite' => $sessionCfg['samesite'],
+    'domain'   => '',        // blank = current host only, works across devices
+    'secure'   => false,     // true only if HTTPS
+    'httponly' => true,
+    'samesite' => 'Lax',
 ]);
+session_name(config('session.name'));
 session_start();
 
 // ---- 7. SET UP ROUTER -------------------------------------------------------

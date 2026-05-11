@@ -9,7 +9,8 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>"><?= e($book['name']) ?></a> <span>›</span>
             <span>Suppliers</span>
         </div>
-        <h1>Suppliers</h1>
+        <h1><i class="fa-solid fa-truck" style="color:var(--brand)"></i> Suppliers</h1>
+        <p>Add, edit, remove suppliers and keep track of all of them</p>
         <p><?= count($suppliers) ?> supplier<?= count($suppliers) !== 1 ? 's' : '' ?></p>
     </div>
     <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>

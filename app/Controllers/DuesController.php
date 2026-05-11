@@ -1,352 +1,198 @@
 <?php
-
 namespace App\Controllers;
-
-use App\Core\Auth;
-use App\Core\DB;
-use App\Services\ActivityLogger;
+use App\Helpers\Database;
 
 class DuesController
 {
-    private DB $db;
-    private ActivityLogger $logger;
-
-    public function __construct()
-    {
-        $this->db     = DB::getInstance();
-        $this->logger = new ActivityLogger();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  GET  /Business/{bookSlug}/Dues
-    // ─────────────────────────────────────────────────────────────────────────
     public function index(array $params): void
     {
-        $book = $this->requireBook($params['bookSlug'] ?? '');
+        if (guest()) redirect('/login');
+        $book = $this->getBookOrFail($params['id']);
 
-        $filter  = $_GET['filter']  ?? 'all';   // all | unpaid | partial | paid
-        $search  = trim($_GET['q']  ?? '');
-        $page    = max(1, (int)($_GET['page'] ?? 1));
-        $perPage = 20;
-        $offset  = ($page - 1) * $perPage;
+        $filter = $_GET['filter'] ?? 'all';
+        $search = trim($_GET['q'] ?? '');
 
-        $where  = ['d.book_id = :book_id'];
-        $binds  = [':book_id' => $book['id']];
+        $where = ['d.book_id=?'];
+        $bind  = [$book['id']];
 
         if ($filter !== 'all') {
-            $where[]            = 'd.status = :status';
-            $binds[':status']   = $filter;
+            $where[] = 'd.status=?';
+            $bind[]  = $filter;
         }
         if ($search !== '') {
-            $where[]              = '(c.name LIKE :q OR c.phone LIKE :q OR d.title LIKE :q)';
-            $binds[':q']          = "%{$search}%";
+            $where[] = '(c.name LIKE ? OR c.phone LIKE ? OR d.title LIKE ?)';
+            $bind[]  = "%{$search}%";
+            $bind[]  = "%{$search}%";
+            $bind[]  = "%{$search}%";
         }
 
         $whereSQL = implode(' AND ', $where);
 
-        $total = (int)$this->db->fetch(
-            "SELECT COUNT(*) AS n
-               FROM dues d
-               LEFT JOIN customers c ON c.id = d.customer_id
-              WHERE {$whereSQL}",
-            $binds
-        )['n'];
-
-        $dues = $this->db->fetchAll(
+        $dues = Database::query(
             "SELECT d.*,
-                    c.name       AS customer_name,
-                    c.phone      AS customer_phone,
-                    c.photo      AS customer_photo,
-                    cu.symbol    AS currency_symbol,
-                    i.invoice_no AS invoice_no
-               FROM dues d
-               LEFT JOIN customers c  ON c.id  = d.customer_id
-               LEFT JOIN currencies cu ON cu.id = d.currency_id
-               LEFT JOIN invoices   i  ON i.id  = d.invoice_id
-              WHERE {$whereSQL}
-              ORDER BY d.status ASC, d.created_at DESC
-              LIMIT {$perPage} OFFSET {$offset}",
-            $binds
+                    c.name  AS customer_name,
+                    c.phone AS customer_phone,
+                    c.photo AS customer_photo,
+                    i.invoice_no,
+                    bc.symbol AS currency_symbol
+             FROM dues d
+             LEFT JOIN customers      c  ON c.id  = d.customer_id
+             LEFT JOIN invoices       i  ON i.id  = d.invoice_id
+             LEFT JOIN book_currencies bc ON bc.book_id = d.book_id AND bc.is_default = 1
+             WHERE {$whereSQL}
+             ORDER BY d.status ASC, d.created_at DESC",
+            $bind
         );
 
-        // Summary totals for this book
-        $summary = $this->db->fetch(
+        $summary = Database::row(
             "SELECT
-                SUM(CASE WHEN status IN ('unpaid','partial') THEN amount - paid_amount ELSE 0 END) AS outstanding,
-                SUM(paid_amount) AS total_collected,
-                COUNT(*)         AS total_count,
-                SUM(CASE WHEN status = 'unpaid'  THEN 1 ELSE 0 END) AS unpaid_count,
-                SUM(CASE WHEN status = 'partial' THEN 1 ELSE 0 END) AS partial_count,
-                SUM(CASE WHEN status = 'paid'    THEN 1 ELSE 0 END) AS paid_count
-             FROM dues WHERE book_id = :book_id",
-            [':book_id' => $book['id']]
+                COALESCE(SUM(CASE WHEN status IN ('unpaid','partial') THEN amount - paid_amount ELSE 0 END), 0) AS outstanding,
+                COALESCE(SUM(paid_amount), 0) AS total_collected,
+                COUNT(*) AS total_count,
+                SUM(status='unpaid')  AS unpaid_count,
+                SUM(status='partial') AS partial_count,
+                SUM(status='paid')    AS paid_count
+             FROM dues WHERE book_id=?",
+            [$book['id']]
         );
 
-        $totalPages = (int)ceil($total / $perPage);
+        $defaultCurrency = Database::row(
+            'SELECT symbol FROM book_currencies WHERE book_id=? AND is_default=1 LIMIT 1',
+            [$book['id']]
+        );
+        $symbol = $defaultCurrency['symbol'] ?? '৳';
 
-        require views_path('business/dues/index.php');
+        require BASE_PATH . '/views/business/dues/index.php';
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  GET  /Business/{bookSlug}/Dues/{id}
-    // ─────────────────────────────────────────────────────────────────────────
-    public function show(array $params): void
-    {
-        $book = $this->requireBook($params['bookSlug'] ?? '');
-        $due  = $this->requireDue((int)($params['id'] ?? 0), $book['id']);
-
-        $customer = $this->db->fetch(
-            "SELECT * FROM customers WHERE id = :id",
-            [':id' => $due['customer_id']]
-        );
-
-        $payments = $this->db->fetchAll(
-            "SELECT dp.*, u.name AS paid_by_name
-               FROM due_payments dp
-               LEFT JOIN users u ON u.id = dp.paid_by
-              WHERE dp.due_id = :due_id
-              ORDER BY dp.paid_at DESC",
-            [':due_id' => $due['id']]
-        );
-
-        $invoice = $due['invoice_id']
-            ? $this->db->fetch("SELECT * FROM invoices WHERE id = :id", [':id' => $due['invoice_id']])
-            : null;
-
-        require views_path('business/dues/show.php');
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  POST  /Business/{bookSlug}/Dues/{id}/Pay
-    // ─────────────────────────────────────────────────────────────────────────
-    public function recordPayment(array $params): void
-    {
-        $book = $this->requireBook($params['bookSlug'] ?? '');
-        $due  = $this->requireDue((int)($params['id'] ?? 0), $book['id']);
-
-        if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-            redirect_back();
-            return;
-        }
-
-        $amount = (float)($_POST['amount'] ?? 0);
-        if ($amount <= 0) {
-            set_flash('error', 'Payment amount must be greater than zero.');
-            redirect_back();
-            return;
-        }
-
-        $remaining = (float)$due['amount'] - (float)$due['paid_amount'];
-        if ($amount > $remaining + 0.001) {
-            set_flash('error', 'Payment exceeds the remaining balance.');
-            redirect_back();
-            return;
-        }
-
-        $method    = sanitize($_POST['payment_method'] ?? 'cash');
-        $reference = sanitize($_POST['reference'] ?? '');
-        $note      = sanitize($_POST['note'] ?? '');
-        $userId    = Auth::id();
-
-        $this->db->query(
-            "INSERT INTO due_payments
-                (due_id, book_id, amount, payment_method, reference, note, paid_by)
-             VALUES (:due_id, :book_id, :amount, :method, :ref, :note, :paid_by)",
-            [
-                ':due_id'  => $due['id'],
-                ':book_id' => $book['id'],
-                ':amount'  => $amount,
-                ':method'  => $method,
-                ':ref'     => $reference,
-                ':note'    => $note,
-                ':paid_by' => $userId,
-            ]
-        );
-
-        $newPaid = (float)$due['paid_amount'] + $amount;
-        $newStatus = $newPaid >= ((float)$due['amount'] - 0.001) ? 'paid' : 'partial';
-
-        $this->db->query(
-            "UPDATE dues SET paid_amount = :paid, status = :status, updated_at = NOW()
-              WHERE id = :id",
-            [':paid' => $newPaid, ':status' => $newStatus, ':id' => $due['id']]
-        );
-
-        $this->logger->log(
-            $book['id'],
-            $userId,
-            'due.payment',
-            'Due',
-            $due['id'],
-            "Recorded payment of {$amount} for due #{$due['id']} (customer: {$due['customer_id']})"
-        );
-
-        set_flash('success', 'Payment recorded successfully.');
-        redirect(base_url("Business/{$book['slug']}/Dues/{$due['id']}"));
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  POST  /Business/{bookSlug}/Dues (manual due – not from invoice)
-    // ─────────────────────────────────────────────────────────────────────────
     public function store(array $params): void
     {
-        $book = $this->requireBook($params['bookSlug'] ?? '');
-
-        if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-            redirect_back();
-            return;
-        }
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
 
         $customerId = (int)($_POST['customer_id'] ?? 0);
-        $customer   = $this->db->fetch(
-            "SELECT id FROM customers WHERE id = :id AND book_id = :book_id",
-            [':id' => $customerId, ':book_id' => $book['id']]
+        $amount     = (float)($_POST['amount'] ?? 0);
+        $title      = trim($_POST['title'] ?? '');
+        $dueDate    = $_POST['due_date'] ?: null;
+        $note       = trim($_POST['note'] ?? '');
+
+        if (!$customerId || $amount <= 0 || !$title) {
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Customer, title and amount are required.']);
+        }
+
+        $customer = Database::row(
+            'SELECT id FROM customers WHERE id=? AND book_id=? AND deleted_at IS NULL',
+            [$customerId, $book['id']]
         );
         if (!$customer) {
-            set_flash('error', 'Customer not found.');
-            redirect_back();
-            return;
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Customer not found.']);
         }
 
-        $data = [
-            ':book_id'     => $book['id'],
-            ':customer_id' => $customerId,
-            ':invoice_id'  => null,
-            ':title'       => sanitize($_POST['title'] ?? 'Manual Due'),
-            ':amount'      => (float)($_POST['amount'] ?? 0),
-            ':paid_amount' => 0,
-            ':currency_id' => $_POST['currency_id'] ? (int)$_POST['currency_id'] : null,
-            ':due_date'    => $_POST['due_date'] ?: null,
-            ':note'        => sanitize($_POST['note'] ?? ''),
-            ':status'      => 'unpaid',
-            ':created_by'  => Auth::id(),
-        ];
-
-        $this->db->query(
-            "INSERT INTO dues
-                (book_id, customer_id, invoice_id, title, amount, paid_amount,
-                 currency_id, due_date, note, status, created_by)
-             VALUES
-                (:book_id, :customer_id, :invoice_id, :title, :amount, :paid_amount,
-                 :currency_id, :due_date, :note, :status, :created_by)",
-            $data
+        Database::run(
+            'INSERT INTO dues (book_id, customer_id, title, amount, paid_amount, due_date, status, created_by, created_at)
+             VALUES (?,?,?,?,0,?,?,?,?)',
+            [$book['id'], $customerId, $title, $amount, $dueDate, 'unpaid', auth()['id'], now()]
         );
 
-        $this->logger->log(
-            $book['id'], Auth::id(), 'due.created', 'Due',
-            (int)$this->db->lastInsertId(),
-            "Manual due created for customer #{$customerId}"
-        );
-
-        set_flash('success', 'Due added successfully.');
-        redirect(base_url("Business/{$book['slug']}/Dues"));
+        redirect('/books/'.$book['id'].'/dues', ['success' => 'Due added.']);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  POST  /Business/{bookSlug}/Dues/{id}/Cancel
-    // ─────────────────────────────────────────────────────────────────────────
+    public function recordPayment(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+        $due  = $this->getDueOrFail($params['due_id'], $book['id']);
+
+        $amount    = (float)($_POST['amount'] ?? 0);
+        $remaining = (float)$due['amount'] - (float)$due['paid_amount'];
+        $amount    = min($amount, $remaining);
+
+        if ($amount <= 0) {
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Invalid payment amount.']);
+        }
+
+        $newPaid   = (float)$due['paid_amount'] + $amount;
+        $newStatus = $newPaid >= ((float)$due['amount'] - 0.001) ? 'paid' : 'partial';
+
+        Database::run(
+            'UPDATE dues SET paid_amount=?, status=?, updated_at=? WHERE id=?',
+            [$newPaid, $newStatus, now(), $due['id']]
+        );
+
+        Database::run(
+            'INSERT INTO due_payments (due_id, book_id, amount, payment_method, paid_by, paid_at)
+             VALUES (?,?,?,?,?,?)',
+            [$due['id'], $book['id'], $amount,
+             trim($_POST['payment_method'] ?? 'cash'),
+             auth()['id'], now()]
+        );
+
+        redirect('/books/'.$book['id'].'/dues', ['success' => format_money($amount).' recorded.']);
+    }
+
     public function cancel(array $params): void
     {
-        $book = $this->requireBook($params['bookSlug'] ?? '');
-        $due  = $this->requireDue((int)($params['id'] ?? 0), $book['id']);
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+        $due  = $this->getDueOrFail($params['due_id'], $book['id']);
 
-        if (!csrf_verify($_POST['csrf_token'] ?? '')) {
-            redirect_back();
-            return;
-        }
-
-        $this->db->query(
-            "UPDATE dues SET status = 'cancelled', updated_at = NOW() WHERE id = :id",
-            [':id' => $due['id']]
+        Database::run(
+            "UPDATE dues SET status='cancelled', updated_at=? WHERE id=?",
+            [now(), $due['id']]
         );
 
-        $this->logger->log(
-            $book['id'], Auth::id(), 'due.cancelled', 'Due', $due['id'],
-            "Due #{$due['id']} cancelled"
-        );
-
-        set_flash('success', 'Due marked as cancelled.');
-        redirect(base_url("Business/{$book['slug']}/Dues"));
+        redirect('/books/'.$book['id'].'/dues', ['success' => 'Due cancelled.']);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Static helper: create a due automatically from an unpaid invoice
-    // ─────────────────────────────────────────────────────────────────────────
-    public static function createFromInvoice(array $invoice): ?int
+    public static function createFromInvoice(array $invoice): void
     {
-        if ($invoice['status'] !== 'unpaid') {
-            return null;
+        if (empty($invoice['customer_id'])) return;
+        try {
+            $existing = Database::row(
+                'SELECT id FROM dues WHERE invoice_id=? AND book_id=?',
+                [$invoice['id'], $invoice['book_id']]
+            );
+            if ($existing) return;
+
+            Database::run(
+                'INSERT INTO dues (book_id, customer_id, invoice_id, title, amount, paid_amount, status, created_by, created_at)
+                 VALUES (?,?,?,?,?,0,?,?,?)',
+                [
+                    $invoice['book_id'],
+                    $invoice['customer_id'],
+                    $invoice['id'],
+                    'Invoice #' . $invoice['invoice_no'],
+                    $invoice['total'],
+                    'unpaid',
+                    auth()['id'] ?? null,
+                    now()
+                ]
+            );
+        } catch (\Throwable $e) {
+            error_log('[DuesController::createFromInvoice] ' . $e->getMessage());
         }
-
-        $db = DB::getInstance();
-
-        // Check if a due already exists for this invoice
-        $existing = $db->fetch(
-            "SELECT id FROM dues WHERE invoice_id = :inv_id AND book_id = :book_id",
-            [':inv_id' => $invoice['id'], ':book_id' => $invoice['book_id']]
-        );
-        if ($existing) {
-            return (int)$existing['id'];
-        }
-
-        $db->query(
-            "INSERT INTO dues
-                (book_id, customer_id, invoice_id, title, amount, paid_amount,
-                 currency_id, status, created_by)
-             VALUES
-                (:book_id, :customer_id, :invoice_id, :title, :amount, 0,
-                 :currency_id, 'unpaid', :created_by)",
-            [
-                ':book_id'     => $invoice['book_id'],
-                ':customer_id' => $invoice['customer_id'],
-                ':invoice_id'  => $invoice['id'],
-                ':title'       => 'Invoice #' . $invoice['invoice_no'],
-                ':amount'      => $invoice['grand_total'],
-                ':currency_id' => $invoice['currency_id'] ?? null,
-                ':created_by'  => Auth::id(),
-            ]
-        );
-
-        $dueId = (int)$db->lastInsertId();
-
-        // Update the invoice row to reference this due
-        $db->query(
-            "UPDATE invoices SET due_id = :due_id WHERE id = :id",
-            [':due_id' => $dueId, ':id' => $invoice['id']]
-        );
-
-        return $dueId;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Helpers
-    // ─────────────────────────────────────────────────────────────────────────
-    private function requireBook(string $slug): array
+    private function getBookOrFail(string $id): array
     {
-        $userId = Auth::id();
-        $book   = $this->db->fetch(
-            "SELECT b.* FROM books b
-              INNER JOIN book_users bu ON bu.book_id = b.id
-              WHERE b.slug = :slug AND bu.user_id = :uid AND b.is_active = 1",
-            [':slug' => $slug, ':uid' => $userId]
+        $book = Database::row(
+            'SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL AND type="business"',
+            [$id, auth()['id']]
         );
-        if (!$book) {
-            http_response_code(404);
-            die('Book not found or access denied.');
-        }
+        if (!$book) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $book;
     }
 
-    private function requireDue(int $id, int $bookId): array
+    private function getDueOrFail(string $dueId, int $bookId): array
     {
-        $due = $this->db->fetch(
-            "SELECT * FROM dues WHERE id = :id AND book_id = :book_id",
-            [':id' => $id, ':book_id' => $bookId]
+        $due = Database::row(
+            'SELECT * FROM dues WHERE id=? AND book_id=?',
+            [$dueId, $bookId]
         );
-        if (!$due) {
-            http_response_code(404);
-            die('Due record not found.');
-        }
+        if (!$due) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $due;
     }
 }

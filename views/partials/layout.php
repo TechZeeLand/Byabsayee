@@ -6,18 +6,17 @@
     <title><?= e($pageTitle ?? 'Byabsayee') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/86c0c1c09a.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="<?= asset('css/app.css') ?>">
 </head>
 <body>
 
 <?php
-// Detect if we are inside a specific book
-$uri        = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$bookMatch  = [];
-$inBook     = preg_match('#^/books/(\d+)#', $uri, $bookMatch);
+$uri           = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+$bookMatch     = [];
+$inBook        = preg_match('#^/books/(\d+)#', $uri, $bookMatch);
 $currentBookId = $inBook ? (int)$bookMatch[1] : null;
 
-// Load book info for sidebar if we're inside one
 $sidebarBook    = null;
 $sidebarDetails = null;
 if ($currentBookId) {
@@ -31,13 +30,23 @@ if ($currentBookId) {
         );
     }
 }
+
+// Safe str_contains that handles null — recomputes URI directly (global scope not reliable in requires)
+function navActive(string $path): string {
+    $u = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+    return str_contains((string)$u, $path) ? 'active' : '';
+}
 ?>
 
 <!-- ===================== SIDEBAR ===================== -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
         <a href="/dashboard" class="sidebar-logo">
-            <div class="s-logo-icon">৳</div>
+            <div class="s-logo-icon">
+                <img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>"
+                     onerror="this.parentElement.innerHTML='৳'"
+                     style="width:20px;height:20px;object-fit:contain">
+            </div>
             <span class="s-logo-text">Byabsayee</span>
         </a>
     </div>
@@ -45,108 +54,96 @@ if ($currentBookId) {
     <nav class="sidebar-nav">
 
         <?php if ($sidebarBook): ?>
-        <!-- ── INSIDE A BOOK: show back + book modules ── -->
-        <a href="/dashboard" class="nav-item" style="color:var(--text-muted);font-size:12px;padding:6px 10px;margin-bottom:4px">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            All Books
+
+        <a href="/dashboard" class="nav-item nav-back">
+            <i class="fa-solid fa-arrow-left"></i> All Books
         </a>
 
-        <!-- Book name in sidebar -->
-        <div style="padding:8px 10px;margin-bottom:4px">
-            <div style="display:flex;align-items:center;gap:8px">
-                <?php if (!empty($sidebarBook['logo'])): ?>
-                <img src="<?= asset('uploads/'.$sidebarBook['logo']) ?>"
-                     style="height:22px;max-width:60px;object-fit:contain;border-radius:3px"
-                     onerror="this.style.display='none'">
-                <?php endif; ?>
-                <span style="font-size:13px;font-weight:600;color:var(--text)">
+        <div class="sidebar-book-info">
+            <?php if (!empty($sidebarBook['logo'])): ?>
+            <img src="<?= asset('uploads/'.$sidebarBook['logo']) ?>"
+                 class="sidebar-book-logo" onerror="this.style.display='none'">
+            <?php endif; ?>
+            <div>
+                <div class="sidebar-book-name">
                     <?= e($sidebarDetails['business_name'] ?? $sidebarBook['name']) ?>
-                </span>
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;margin-top:4px">
-                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:<?= e($sidebarBook['color']) ?>"></span>
-                <span style="font-size:11px;color:var(--text-muted);text-transform:capitalize"><?= e($sidebarBook['type']) ?> book</span>
+                </div>
+                <div class="sidebar-book-type">
+                    <span class="book-dot" style="background:<?= e($sidebarBook['color']) ?>"></span>
+                    <?= e(ucfirst($sidebarBook['type'])) ?> book
+                </div>
             </div>
         </div>
 
-        <a href="/books/<?= $currentBookId ?>" class="nav-item <?= activePage('books/'.$currentBookId) && !preg_match('#/books/'.$currentBookId.'/.+#',$uri) ? 'active' : '' ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h4a1 1 0 001-1v-3h2v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
-            Dashboard
+        <a href="/books/<?= $currentBookId ?>"
+           class="nav-item <?= preg_match('#^/books/'.$currentBookId.'$#', $uri) ? 'active' : '' ?>">
+            <i class="fa-solid fa-gauge"></i> Dashboard
         </a>
 
         <?php if ($sidebarBook['type'] === 'business'): ?>
-        <a href="/books/<?= $currentBookId ?>/pos" class="nav-item <?= str_contains($uri,'/pos') ? 'active' : '' ?>" style="color:var(--green)">
-            <span style="font-size:15px">🖨</span> Quick Sale (POS)
-        </a>
 
-        <div style="padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-top:6px">Modules</div>
+        <div class="sidebar-quick-btns">
+            <a href="/books/<?= $currentBookId ?>/invoices/create?type=sale" class="quick-btn quick-btn-sell">
+                <i class="fa-solid fa-plus"></i> Sell
+            </a>
+            <a href="/books/<?= $currentBookId ?>/invoices/create?type=purchase" class="quick-btn btn-secondary" style="border: 1px solid #cccccc;">
+                <i class="fa-solid fa-cart-shopping"></i> Purchase
+            </a>
+        </div>
 
-        <?php
-        $bookNav = [
-            ['icon'=>'👥','label'=>'Customers', 'path'=>'customers'],
-            ['icon'=>'🏭','label'=>'Suppliers',  'path'=>'suppliers'],
-            ['icon'=>'📦','label'=>'Products',   'path'=>'products'],
-            ['icon'=>'🧾','label'=>'Invoices',   'path'=>'invoices'],
-            ['icon'=>'💸','label'=>'Expenses',   'path'=>'expenses'],
-            ['icon'=>'👔','label'=>'Employees',  'path'=>'employees'],
-            ['icon'=>'🚚','label'=>'Deliveries', 'path'=>'deliveries'],
-            ['icon'=>'🎫','label'=>'Privileges', 'path'=>'privileges'],
-            ['icon'=>'📊','label'=>'Reports',    'path'=>'reports'],
-        ];
-        foreach ($bookNav as $nav):
-            $isActive = str_contains($uri, '/books/'.$currentBookId.'/'.$nav['path']);
-        ?>
-        <a href="/books/<?= $currentBookId ?>/<?= $nav['path'] ?>"
-           class="nav-item <?= $isActive ? 'active' : '' ?>">
-            <span style="font-size:14px"><?= $nav['icon'] ?></span>
-            <?= $nav['label'] ?>
-        </a>
-        <?php endforeach; ?>
-
-        <div style="padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-top:6px">Settings</div>
-        <a href="/books/<?= $currentBookId ?>/edit" class="nav-item <?= str_contains($uri,'/edit') ? 'active' : '' ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-            Edit Book
-        </a>
+        <a href="/books/<?= $currentBookId ?>/invoices"    class="nav-item <?= navActive('/books/'.$currentBookId.'/invoices') ?>">     <i class="fa-solid fa-file-invoice"></i> Invoices</a>
+        <a href="/books/<?= $currentBookId ?>/products"    class="nav-item <?= navActive('/books/'.$currentBookId.'/products') ?>">     <i class="fa-solid fa-box"></i> Products</a>
+        <a href="/books/<?= $currentBookId ?>/funds"       class="nav-item <?= navActive('/books/'.$currentBookId.'/funds') ?>">        <i class="fa-solid fa-piggy-bank"></i> Funds</a>
+        <a href="/books/<?= $currentBookId ?>/expenses"    class="nav-item <?= navActive('/books/'.$currentBookId.'/expenses') ?>">     <i class="fa-solid fa-receipt"></i> Expenses</a>
+        <a href="/books/<?= $currentBookId ?>/dues"        class="nav-item <?= navActive('/books/'.$currentBookId.'/dues') ?>">         <i class="fa-solid fa-hand-holding-dollar"></i> Dues</a>
+        <a href="/books/<?= $currentBookId ?>/debts"       class="nav-item <?= navActive('/books/'.$currentBookId.'/debts') ?>">        <i class="fa-solid fa-file-circle-minus"></i> Debts</a>
+        <a href="/books/<?= $currentBookId ?>/customers"   class="nav-item <?= navActive('/books/'.$currentBookId.'/customers') ?>">    <i class="fa-solid fa-users"></i> Customers</a>
+        <a href="/books/<?= $currentBookId ?>/suppliers"   class="nav-item <?= navActive('/books/'.$currentBookId.'/suppliers') ?>">    <i class="fa-solid fa-truck"></i> Suppliers</a>
+        <a href="/books/<?= $currentBookId ?>/privileges"  class="nav-item <?= navActive('/books/'.$currentBookId.'/privileges') ?>">   <i class="fa-solid fa-star"></i> Privileges</a>
+        <a href="/books/<?= $currentBookId ?>/deliveries"  class="nav-item <?= navActive('/books/'.$currentBookId.'/deliveries') ?>">   <i class="fa-solid fa-truck-fast"></i> Deliveries</a>
+        <a href="/books/<?= $currentBookId ?>/employees"   class="nav-item <?= navActive('/books/'.$currentBookId.'/employees') ?>">    <i class="fa-solid fa-id-badge"></i> Employees</a>
+        <a href="/books/<?= $currentBookId ?>/reports"     class="nav-item <?= navActive('/books/'.$currentBookId.'/reports') ?>">      <i class="fa-solid fa-chart-line"></i> Reports</a>
 
         <?php else: ?>
-        <!-- Personal book nav -->
-        <a href="/books/<?= $currentBookId ?>/contacts" class="nav-item <?= str_contains($uri,'/contacts') ? 'active' : '' ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-            Contacts
-        </a>
-        <a href="/books/<?= $currentBookId ?>/edit" class="nav-item <?= str_contains($uri,'/edit') ? 'active' : '' ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-            Edit Book
+        <a href="/books/<?= $currentBookId ?>/contacts" class="nav-item <?= navActive('/books/'.$currentBookId.'/contacts') ?>">
+            <i class="fa-solid fa-address-book"></i> Contacts
         </a>
         <?php endif; ?>
 
+        <a href="/books/<?= $currentBookId ?>/edit" class="nav-item <?= navActive('/books/'.$currentBookId.'/edit') ?>">
+            <i class="fa-solid fa-gear"></i> Book Settings
+        </a>
+
         <?php else: ?>
-        <!-- ── NOT IN A BOOK: normal top-level nav ── -->
+
+        <div class="sidebar-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="bookFilterInput" placeholder="Find a book…"
+                   oninput="filterBooks(this.value)">
+        </div>
+
         <a href="/dashboard" class="nav-item <?= activePage('dashboard') ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h4a1 1 0 001-1v-3h2v3a1 1 0 001 1h4a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
-            Dashboard
+            <i class="fa-solid fa-gauge"></i> Dashboard
         </a>
-        <a href="/books" class="nav-item <?= activePage('books') ?>">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/></svg>
-            My Books
-        </a>
+
         <?php endif; ?>
 
     </nav>
 
     <div class="sidebar-bottom">
-        <div class="sidebar-user">
-            <div class="s-avatar"><?= mb_strtoupper(mb_substr(auth()['name'], 0, 1)) ?></div>
-            <div class="s-user-info">
-                <div class="s-user-name"><?= e(auth()['name']) ?></div>
-                <div class="s-user-email"><?= e(auth()['email']) ?></div>
-            </div>
-        </div>
-        <a href="/logout" class="nav-item nav-logout">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>
-            Log out
+        <a href="/settings" class="nav-item">
+            <i class="fa-solid fa-sliders"></i> App Settings
         </a>
+        <div class="sidebar-user">
+            <div class="s-avatar"><?= mb_strtoupper(mb_substr(auth()['name'] ?? 'U', 0, 1)) ?></div>
+            <div class="s-user-info">
+                <div class="s-user-name"><?= e(auth()['name'] ?? '') ?></div>
+                <div class="s-user-email"><?= e(auth()['email'] ?? '') ?></div>
+            </div>
+            <a href="/logout" title="Log out" class="s-logout-btn">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
     </div>
 </aside>
 
@@ -161,10 +158,13 @@ if ($currentBookId) {
 
     <div class="app-content">
         <?php if ($msg = flash('error')): ?>
-            <div class="flash flash-error"><?= e($msg) ?></div>
+            <div class="flash flash-error"><i class="fa-solid fa-circle-xmark"></i> <?= e($msg) ?></div>
         <?php endif; ?>
         <?php if ($msg = flash('success')): ?>
-            <div class="flash flash-success"><?= e($msg) ?></div>
+            <div class="flash flash-success"><i class="fa-solid fa-circle-check"></i> <?= e($msg) ?></div>
+        <?php endif; ?>
+        <?php if ($msg = flash('warning')): ?>
+            <div class="flash flash-warning"><i class="fa-solid fa-triangle-exclamation"></i> <?= e($msg) ?></div>
         <?php endif; ?>
 
         <?= $content ?? '' ?>
@@ -173,6 +173,70 @@ if ($currentBookId) {
 
 <div class="sidebar-overlay" onclick="document.getElementById('sidebar').classList.remove('open')"></div>
 
+<!-- ===================== NOTIFICATION PANEL ===================== -->
+<div class="notif-backdrop" id="notifBackdrop" onclick="closeNotifPanel(event)">
+    <div class="notif-panel">
+        <div class="notif-panel-header">
+            <span><i class="fa-solid fa-bell"></i> Notifications</span>
+            <button onclick="document.getElementById('notifBackdrop').classList.remove('open')" class="notif-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="notif-panel-body" id="notifPanelBody">
+            <div class="notif-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading…</div>
+        </div>
+    </div>
+</div>
+
 <script src="<?= asset('js/app.js') ?>"></script>
+<script>
+function filterBooks(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.book-card, .book-row').forEach(el => {
+        el.style.display = (!q || el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+    });
+}
+
+let notifLoaded = false;
+function openNotifPanel(e) {
+    if (e) e.preventDefault();
+    document.getElementById('notifBackdrop').classList.add('open');
+    if (notifLoaded) return;
+    const bookId = <?= $currentBookId ? (int)$currentBookId : 'null' ?>;
+    if (!bookId) {
+        document.getElementById('notifPanelBody').innerHTML = '<div class="notif-empty">No notifications.</div>';
+        return;
+    }
+    fetch('/books/' + bookId + '/notifications?json=1')
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+            notifLoaded = true;
+            const body = document.getElementById('notifPanelBody');
+            if (!data.length) {
+                body.innerHTML = '<div class="notif-empty"><i class="fa-regular fa-bell-slash"></i><br>No notifications yet.</div>';
+                return;
+            }
+            body.innerHTML = data.map(n =>
+                `<div class="notif-item notif-${n.type}">
+                    <div class="notif-item-title">${escHtml(n.title)}</div>
+                    ${n.body ? `<div class="notif-item-body">${escHtml(n.body)}</div>` : ''}
+                    <div class="notif-item-meta">${escHtml(n.sender_name||'System')} · ${escHtml(n.created_at||'')}</div>
+                </div>`
+            ).join('');
+        })
+        .catch(() => {
+            document.getElementById('notifPanelBody').innerHTML = '<div class="notif-empty">Could not load.</div>';
+        });
+}
+function closeNotifPanel(e) {
+    if (e && e.target !== document.getElementById('notifBackdrop')) return;
+    document.getElementById('notifBackdrop').classList.remove('open');
+}
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(s)));
+    return d.innerHTML;
+}
+</script>
 </body>
 </html>
