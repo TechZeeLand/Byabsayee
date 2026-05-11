@@ -1,0 +1,7 @@
+.env
+.git
+.github
+mariadb/data
+storage/sessions
+node_modules
+*.log
