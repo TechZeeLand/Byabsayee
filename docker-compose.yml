@@ -48,6 +48,7 @@ services:
     container_name: byabsayee_db
     restart: always
     environment:
+      environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
@@ -57,7 +58,7 @@ services:
     networks:
       - byabsayee
     healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-pRAYilyvm2005@", "-e", "SELECT 1"]
+      test: ["CMD-SHELL", "mariadb -u$MYSQL_USER -p$MYSQL_PASSWORD -e 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -71,7 +72,7 @@ services:
     environment:
       - PMA_HOST=db
       - PMA_PORT=3306
-      - MYSQL_ROOT_PASSWORD=RAYilyvm2005@
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     depends_on:
       - db
     networks:
