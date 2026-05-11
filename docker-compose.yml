@@ -56,6 +56,8 @@ services:
   db:
     image: mariadb:10.11
     container_name: byabsayee_db
+    ports:
+      - "3011:3306"
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
