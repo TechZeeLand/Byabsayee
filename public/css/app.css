@@ -360,7 +360,6 @@ body {
     border-radius: var(--radius-lg);
     overflow: hidden;
     overflow-x: auto;
-    padding: 15px;
 }
 
 table { width: 100%; border-collapse: collapse; }
@@ -473,6 +472,10 @@ tbody td { padding: 10px 14px; font-size: 13.5px; vertical-align: middle; }
 /* ============================================================
    MODALS
    ============================================================ */
+
+#editPrivModal{
+    padding: 100px;
+}
 
 .modal-backdrop {
     display: none;
