@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle ?? 'Byabsayee') ?></title>
-    <link rel="icon" type="image/png" href="<?= asset('favicon.png') ?>">
+    <link rel="icon" type="image/png" href="<?= asset('assets/images/ByabsayeeLogo.png') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
     <script src="https://kit.fontawesome.com/86c0c1c09a.js" crossorigin="anonymous"></script>
@@ -99,8 +99,8 @@ function navActive(string $path): string {
         <a href="/books/<?= $currentBookId ?>/dues"        class="nav-item <?= navActive('/books/'.$currentBookId.'/dues') ?>">         <i class="fa-solid fa-hand-holding-dollar"></i> Dues</a>
         <a href="/books/<?= $currentBookId ?>/debts"       class="nav-item <?= navActive('/books/'.$currentBookId.'/debts') ?>">        <i class="fa-solid fa-file-circle-minus"></i> Debts</a>
         <a href="/books/<?= $currentBookId ?>/customers"   class="nav-item <?= navActive('/books/'.$currentBookId.'/customers') ?>">    <i class="fa-solid fa-users"></i> Customers</a>
-        <a href="/books/<?= $currentBookId ?>/suppliers"   class="nav-item <?= navActive('/books/'.$currentBookId.'/suppliers') ?>">    <i class="fa-solid fa-user-tie"></i> Suppliers</a>
-        <a href="/books/<?= $currentBookId ?>/contacts"    class="nav-item <?= navActive('/books/'.$currentBookId.'/contacts') ?>">     <i class="fa-solid fa-address-book"></i> Contacts</a>
+        <a href="/books/<?= $currentBookId ?>/suppliers"   class="nav-item <?= navActive('/books/'.$currentBookId.'/suppliers') ?>">    <i class="fa-solid fa-truck"></i> Suppliers</a>
+        <a href="/books/<?= $currentBookId ?>/privileges"  class="nav-item <?= navActive('/books/'.$currentBookId.'/privileges') ?>">   <i class="fa-solid fa-star"></i> Privileges</a>
         <a href="/books/<?= $currentBookId ?>/deliveries"  class="nav-item <?= navActive('/books/'.$currentBookId.'/deliveries') ?>">   <i class="fa-solid fa-truck-fast"></i> Deliveries</a>
         <a href="/books/<?= $currentBookId ?>/employees"   class="nav-item <?= navActive('/books/'.$currentBookId.'/employees') ?>">    <i class="fa-solid fa-id-badge"></i> Employees</a>
         <a href="/books/<?= $currentBookId ?>/reports"     class="nav-item <?= navActive('/books/'.$currentBookId.'/reports') ?>">      <i class="fa-solid fa-chart-line"></i> Reports</a>
