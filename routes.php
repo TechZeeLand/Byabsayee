@@ -58,12 +58,14 @@ $router->post('/books/{id}/delete', [BookController::class, 'delete']);
 $router->get('/books/{id}/search',  [BookSearchController::class, 'search']);
 
 // ── Entries (personal books) ───────────────────────────────────────────────────
-$router->post('/books/{id}/entries/add',               [EntryController::class, 'store']);
-$router->post('/books/{id}/entries/{entry_id}/delete', [EntryController::class, 'delete']);
+$router->post('/books/{id}/entries/add',                    [EntryController::class, 'store']);
+$router->post('/books/{id}/entries/{entry_id}/edit',        [EntryController::class, 'update']);
+$router->post('/books/{id}/entries/{entry_id}/delete',      [EntryController::class, 'delete']);
 
 // ── Contacts (personal books) ──────────────────────────────────────────────────
 $router->get( '/books/{id}/contacts',                       [ContactController::class, 'index']);
 $router->post('/books/{id}/contacts/add',                   [ContactController::class, 'store']);
+$router->post('/books/{id}/contacts/{contact_id}/edit',     [ContactController::class, 'update']);
 $router->post('/books/{id}/contacts/{contact_id}/delete',   [ContactController::class, 'delete']);
 
 // ── Customers ──────────────────────────────────────────────────────────────────

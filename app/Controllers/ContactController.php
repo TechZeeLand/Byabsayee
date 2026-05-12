@@ -64,6 +64,35 @@ class ContactController
     }
 
     // =========================================================================
+    // EDIT CONTACT  →  POST /books/{id}/contacts/{contact_id}/edit
+    // =========================================================================
+    public function update(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+
+        $book = $this->getBookOrFail($params['id']);
+
+        $name    = trim($_POST['name'] ?? '');
+        $phone   = trim($_POST['phone'] ?? '');
+        $email   = trim($_POST['email'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $notes   = trim($_POST['notes'] ?? '');
+
+        if (!$name) {
+            redirect('/books/' . $book['id'] . '/contacts', ['error' => 'Contact name is required.']);
+        }
+
+        Database::run(
+            'UPDATE contacts SET name=?, phone=?, email=?, address=?, notes=? WHERE id=? AND book_id=?',
+            [$name, $phone ?: null, $email ?: null, $address ?: null, $notes ?: null,
+             $params['contact_id'], $book['id']]
+        );
+
+        redirect('/books/' . $book['id'] . '/contacts', ['success' => e($name) . ' updated.']);
+    }
+
+    // =========================================================================
     // DELETE CONTACT  →  POST /books/{id}/contacts/{contact_id}/delete
     // =========================================================================
     public function delete(array $params): void
