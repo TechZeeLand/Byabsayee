@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Invoice <?= e($invoice['invoice_no']) ?> — <?= e($invoice['business_name'] ?? $invoice['book_name']) ?></title>
 <link rel="icon" type="image/png" href="/assets/images/ByabsayeeLogo.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="shortcut icon" href="favicon.ico">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f5f5f5;padding:20px}
