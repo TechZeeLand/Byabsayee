@@ -76,7 +76,7 @@ body {
     height: 48px;
     background: var(--accent);
     color: var(--brand-dark);
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -84,6 +84,14 @@ body {
     font-weight: 700;
     font-family: 'Noto Sans Bengali', sans-serif;
     flex-shrink: 0;
+}
+
+.logo-icon img{
+    height: 100%;
+    width: 100%;
+    background: #fff;
+    padding: 10px;
+    border-radius: 10px;
 }
 
 .logo-text {
