@@ -36,10 +36,13 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile.nginx   # bakes public/ + config into image, no volume needed
+      dockerfile: Dockerfile.nginx
     container_name: byabsayee_nginx
     ports:
       - "1021:1021"
+    volumes:
+      # Uploads volume shared with PHP container so nginx can serve book logos etc.
+      - byabsayee_uploads:/Sites/byabsayee/uploads
     depends_on:
       - byabsayee
     networks:

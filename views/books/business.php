@@ -316,7 +316,7 @@ $recentActivity = array_slice($allActivity, 0, 20);
         <span class="count-label">Customers</span>
     </a>
     <a href="/books/<?= $bookId ?>/suppliers" class="count-card">
-        <i class="fa-solid fa-truck" style="color: #8b5cf6"></i>
+        <i class="fa-solid fa-user-tie" style="color: #8b5cf6"></i>
         <span class="count-val"><?= (int)($stats['suppliers'] ?? 0) ?></span>
         <span class="count-label">Suppliers</span>
     </a>
@@ -344,7 +344,7 @@ $modules = [
     ['icon'=>'fa-hand-holding-dollar','color'=>'#d97706','label'=>'Dues',      'sub'=>'Owed by Others',     'url'=>'/books/'.$bookId.'/dues'],
     ['icon'=>'fa-file-circle-minus',  'color'=>'#dc2626','label'=>'Debts',     'sub'=>'Owed to Others',     'url'=>'/books/'.$bookId.'/debts'],
     ['icon'=>'fa-users',              'color'=>'#3b82f6','label'=>'Customers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/customers'],
-    ['icon'=>'fa-truck',              'color'=>'#8b5cf6','label'=>'Suppliers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/suppliers'],
+    ['icon'=>'fa-user-tie',              'color'=>'#8b5cf6','label'=>'Suppliers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/suppliers'],
     ['icon'=>'fa-address-book',       'color'=>'#f97316','label'=>'Contacts',  'sub'=>'Everyone Known',     'url'=>'/books/'.$bookId.'/contacts'],
     ['icon'=>'fa-truck-fast',         'color'=>'#0d9488','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
     ['icon'=>'fa-id-badge',           'color'=>'#6366f1','label'=>'Employees', 'sub'=>'HR & Payroll',       'url'=>'/books/'.$bookId.'/employees'],

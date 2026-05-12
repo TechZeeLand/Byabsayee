@@ -473,10 +473,6 @@ tbody td { padding: 10px 14px; font-size: 13.5px; vertical-align: middle; }
    MODALS
    ============================================================ */
 
-#editPrivModal{
-    padding: 100px;
-}
-
 .modal-backdrop {
     display: none;
     position: fixed;

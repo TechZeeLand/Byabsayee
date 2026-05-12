@@ -1,26 +1,15 @@
-# =============================================================================
-# .github/workflows/deploy.yml
-# =============================================================================
-# This runs automatically every time you push to the "main" branch.
-# It SSHes into your server and pulls the latest code.
-#
-# SETUP REQUIRED (one time):
-# In your GitHub repo → Settings → Secrets and variables → Actions → New secret
-# Add these secrets:
-#   SERVER_HOST  →  192.168.0.123   (or your domain when you go public)
-#   SERVER_USER  →  your SSH username on the server (e.g. root or debian)
-#   SERVER_KEY   →  your private SSH key (contents of ~/.ssh/id_rsa)
-#   SERVER_PORT  →  22  (default SSH port)
-# =============================================================================
-
 name: Deploy Byabsayee
 
 on:
   push:
     branches:
-      - main          # only deploy when pushing to main branch
+      - main
     paths:
-      - 'app/**'      # only deploy if app files changed (not docker/ changes)
+      - 'app/**'
+      - 'views/**'
+      - 'public/**'
+      - 'routes.php'
+      - 'nginx/**'
 
 jobs:
   deploy:
@@ -49,5 +38,11 @@ jobs:
               --no-dev \
               --optimize-autoloader \
               --no-interaction
+
+            echo "=== Syncing public/ assets into nginx container ==="
+            # The nginx image bakes public/ at build time, but git pull only
+            # updates the PHP container. This copies the latest public/ files
+            # (favicon, CSS, JS, etc.) directly into the running nginx container.
+            docker cp /Sites/byabsayee/public/. byabsayee_nginx:/Sites/byabsayee/public/
 
             echo "=== Done ==="
