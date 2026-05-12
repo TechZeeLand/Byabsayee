@@ -28,6 +28,15 @@ class CustomerController
         $sql .= ' GROUP BY c.id ORDER BY c.name';
         $customers = Database::query($sql, $p);
 
+        $privileges = Database::query(
+            'SELECT p.*, COUNT(c2.id) AS customer_count
+             FROM customer_privileges p
+             LEFT JOIN customers c2 ON c2.privilege_id=p.id AND c2.deleted_at IS NULL
+             WHERE p.book_id=?
+             GROUP BY p.id ORDER BY p.name',
+            [$book['id']]
+        );
+
         require BASE_PATH . '/views/business/customers/index.php';
     }
 

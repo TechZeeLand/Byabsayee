@@ -32,7 +32,7 @@ class PrivilegeController
         $discountValue = (float)($_POST['discount_value'] ?? 0);
         $description   = trim($_POST['description']    ?? '');
 
-        if (!$name) redirect('/books/'.$book['id'].'/privileges', ['error' => 'Name is required.']);
+        if (!$name) redirect('/books/'.$book['id'].'/customers', ['error' => 'Name is required.']);
         if (!in_array($discountType, ['percent','fixed'])) $discountType = 'percent';
         if ($discountType === 'percent' && $discountValue > 100) $discountValue = 100;
 
@@ -42,7 +42,7 @@ class PrivilegeController
             [$book['id'], $name, $discountType, $discountValue, $description ?: null, now()]
         );
 
-        redirect('/books/'.$book['id'].'/privileges', ['success' => '"'.$name.'" privilege created.']);
+        redirect('/books/'.$book['id'].'/customers', ['success' => '"'.$name.'" privilege created.']);
     }
 
     // Update  →  POST /books/{id}/privileges/{priv_id}/edit
@@ -58,14 +58,14 @@ class PrivilegeController
         $discountValue = (float)($_POST['discount_value'] ?? 0);
         $description   = trim($_POST['description']    ?? '');
 
-        if (!$name) redirect('/books/'.$book['id'].'/privileges', ['error' => 'Name is required.']);
+        if (!$name) redirect('/books/'.$book['id'].'/customers', ['error' => 'Name is required.']);
 
         Database::run(
             'UPDATE customer_privileges SET name=?,discount_type=?,discount_value=?,description=? WHERE id=?',
             [$name, $discountType, $discountValue, $description ?: null, $priv['id']]
         );
 
-        redirect('/books/'.$book['id'].'/privileges', ['success' => 'Privilege updated.']);
+        redirect('/books/'.$book['id'].'/customers', ['success' => 'Privilege updated.']);
     }
 
     // Delete  →  POST /books/{id}/privileges/{priv_id}/delete
@@ -80,7 +80,7 @@ class PrivilegeController
         Database::run('UPDATE customers SET privilege_id=NULL WHERE privilege_id=?', [$priv['id']]);
         Database::run('DELETE FROM customer_privileges WHERE id=?', [$priv['id']]);
 
-        redirect('/books/'.$book['id'].'/privileges', ['success' => '"'.$priv['name'].'" deleted.']);
+        redirect('/books/'.$book['id'].'/customers', ['success' => '"'.$priv['name'].'" deleted.']);
     }
 
     private function getBookOrFail(string $id): array
