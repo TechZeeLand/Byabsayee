@@ -72,9 +72,13 @@ function guest(): bool
     return !isset($_SESSION['user']);
 }
 
+// FIX: asset() now uses the actual request host instead of APP_URL.
+// This means CSS/JS links work from any IP or hostname without touching .env.
 function asset(string $path): string
 {
-    return rtrim(config('url'), '/') . '/' . ltrim($path, '/');
+    $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    return $scheme . '://' . $host . '/' . ltrim($path, '/');
 }
 
 function now(): string

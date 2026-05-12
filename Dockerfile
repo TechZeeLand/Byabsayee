@@ -33,18 +33,18 @@ RUN echo "session.save_path = /Sites/byabsayee/storage/sessions" \
 
 WORKDIR /Sites/byabsayee
 
-# Copy app code into the image.
-# Portainer rebuilds this on every git deploy, so code is always fresh.
-# .env is NOT copied (see .dockerignore) — env vars come from docker-compose.
 COPY . /Sites/byabsayee/
 
-# Ensure writable directories exist with correct permissions.
-# These will be overlaid by named volumes at runtime (data persists between deploys).
 RUN mkdir -p /Sites/byabsayee/storage/sessions \
              /Sites/byabsayee/uploads \
  && chmod -R 775 /Sites/byabsayee/storage \
                  /Sites/byabsayee/uploads
 
+# Entrypoint fixes named-volume ownership (root→www-data) before php-fpm starts
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 9000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]
