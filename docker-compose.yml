@@ -10,7 +10,7 @@ services:
       # No code volume — app is baked into the image (rebuilt on every git deploy)
       # Only persist the two directories that must survive between deploys:
       - byabsayee_sessions:/Sites/byabsayee/storage/sessions
-      - byabsayee_uploads:/Sites/byabsayee/uploads
+      - /Sites/byabsayee/uploads:/Sites/byabsayee/uploads
     environment:
       - APP_NAME=${APP_NAME}
       - APP_URL=${APP_URL}
@@ -41,8 +41,8 @@ services:
     ports:
       - "1021:1021"
     volumes:
-      # Uploads volume shared with PHP container so nginx can serve book logos etc.
-      - byabsayee_uploads:/Sites/byabsayee/uploads
+      # Bind mount so nginx serves uploads directly from /Sites/byabsayee/uploads on the host
+      - /Sites/byabsayee/uploads:/Sites/byabsayee/uploads
     depends_on:
       - byabsayee
     networks:
@@ -92,4 +92,3 @@ networks:
 volumes:
   byabsayee_db_data:       # MariaDB data
   byabsayee_sessions:      # PHP sessions — persists logins between redeploys
-  byabsayee_uploads:       # User-uploaded files — persists between redeploys
