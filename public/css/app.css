@@ -360,6 +360,7 @@ body {
     border-radius: var(--radius-lg);
     overflow: hidden;
     overflow-x: auto;
+    padding: 15px;
 }
 
 table { width: 100%; border-collapse: collapse; }
