@@ -17,7 +17,7 @@
     <div class="auth-brand">
         <div class="brand-content">
             <div class="logo">
-                <span class="logo-icon">৳</span>
+                <span class="logo-icon"><img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>" onerror="this.parentElement.innerHTML='৳'"></span>
                 <span class="logo-text">Byabsayee</span>
             </div>
             <p class="brand-tagline">ব্যবসার হিসাব, একটি জায়গায়।<br><small>Track every taka. Know your business.</small></p>
