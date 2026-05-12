@@ -344,10 +344,11 @@ $modules = [
     ['icon'=>'fa-hand-holding-dollar','color'=>'#d97706','label'=>'Dues',      'sub'=>'Owed by Others',     'url'=>'/books/'.$bookId.'/dues'],
     ['icon'=>'fa-file-circle-minus',  'color'=>'#dc2626','label'=>'Debts',     'sub'=>'Owed to Others',     'url'=>'/books/'.$bookId.'/debts'],
     ['icon'=>'fa-users',              'color'=>'#3b82f6','label'=>'Customers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/customers'],
-    ['icon'=>'fa-user-tie',              'color'=>'#8b5cf6','label'=>'Suppliers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/suppliers'],
-    ['icon'=>'fa-address-book',       'color'=>'#f97316','label'=>'Contacts',  'sub'=>'Everyone Known',     'url'=>'/books/'.$bookId.'/contacts'],
-    ['icon'=>'fa-truck-fast',         'color'=>'#0d9488','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
+    ['icon'=>'fa-user-tie',           'color'=>'#8b5cf6','label'=>'Suppliers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/suppliers'],
     ['icon'=>'fa-id-badge',           'color'=>'#6366f1','label'=>'Employees', 'sub'=>'HR & Payroll',       'url'=>'/books/'.$bookId.'/employees'],
+    ['icon'=>'fa-address-book',       'color'=>'#f97316','label'=>'Contacts',  'sub'=>'Everyone Known',     'url'=>'/books/'.$bookId.'/contacts'],
+    ['icon'=>'fa-ticket',             'color'=>'#d4ec69','label'=>'Coupons',   'sub'=>'Manage Coupons',     'url'=>'/books/'.$bookId.'/coupons'],
+    ['icon'=>'fa-truck-fast',         'color'=>'#0d9488','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
     ['icon'=>'fa-chart-line',         'color'=>'#14b8a6','label'=>'Reports',   'sub'=>'Profit & Loss',      'url'=>'/books/'.$bookId.'/reports'],
 ];
 foreach ($modules as $m): ?>

@@ -42,13 +42,30 @@ class InvoiceController
 
         $customers       = Database::query('SELECT id,name,phone,points FROM customers WHERE book_id=? AND deleted_at IS NULL ORDER BY name', [$book['id']]);
         $suppliers       = Database::query('SELECT id,name,company FROM suppliers WHERE book_id=? AND deleted_at IS NULL ORDER BY name', [$book['id']]);
-        $products        = Database::query('SELECT id,name,sell_price,buy_price,stock_qty,unit,product_code,sku FROM products WHERE book_id=? AND deleted_at IS NULL ORDER BY name', [$book['id']]);
         $details         = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
         $deliveryMethods = Database::query('SELECT * FROM invoice_method_options WHERE book_id=? AND type="delivery" ORDER BY sort_order', [$book['id']]);
         $paymentMethods  = Database::query('SELECT * FROM invoice_method_options WHERE book_id=? AND type="payment"  ORDER BY sort_order', [$book['id']]);
         $currencies      = Database::query('SELECT * FROM book_currencies WHERE book_id=? ORDER BY is_default DESC, sort_order', [$book['id']]);
 
-        // Separate prefix per type, 6-digit counter
+        $inventoryMethod = $details['inventory_method'] ?? 'FIFO';
+        $rawProducts = Database::query(
+            'SELECT id,name,sell_price,buy_price,stock_qty,unit,product_code,sku,barcode
+             FROM products WHERE book_id=? AND deleted_at IS NULL ORDER BY name',
+            [$book['id']]
+        );
+        $products = [];
+        foreach ($rawProducts as $p) {
+            $batchOrder = ($inventoryMethod === 'FIFO') ? 'ASC' : 'DESC';
+            try {
+                $batches = Database::query(
+                    "SELECT * FROM product_batches WHERE product_id=? AND remaining_qty>0 ORDER BY created_at {$batchOrder}",
+                    [$p['id']]
+                );
+            } catch (\Throwable $e) { $batches = []; }
+            $p['batches'] = $batches;
+            $products[] = $p;
+        }
+
         if ($type === 'purchase') {
             $prefix  = $details['invoice_prefix_purchase'] ?? 'PUR';
             $counter = $details['invoice_counter_purchase'] ?? 1;
@@ -81,7 +98,8 @@ class InvoiceController
         $discount       = (float)($_POST['discount']        ?? 0);
         $pointsDiscount = (float)($_POST['points_discount'] ?? 0);
         $deliveryCharge = (float)($_POST['delivery_charge'] ?? 0);
-        $rounding       = (float)($_POST['rounding']        ?? 0);
+        $deliveryType   = $_POST['delivery_type']           ?? 'own';
+        $roundingOn     = !empty($_POST['rounding_enabled']);
         $tax            = (float)($_POST['tax']             ?? 0);
         $deliveryMethod = trim($_POST['delivery_method']    ?? '');
         $paymentMethod  = trim($_POST['payment_method']     ?? '');
@@ -115,19 +133,25 @@ class InvoiceController
             $items[]  = compact('itemName','qty','price','discPct','lineTot','pid','variant');
         }
 
+        $rounding = 0.0;
+        if ($roundingOn) {
+            $baseTotal = $subtotal - $discount - $pointsDiscount + $deliveryCharge + $tax;
+            $rounding  = $baseTotal - floor($baseTotal);
+        }
+
         $total = max(0, $subtotal - $discount - $pointsDiscount + $deliveryCharge - $rounding + $tax);
 
         Database::run(
             'INSERT INTO invoices
                 (book_id,type,invoice_no,customer_id,supplier_id,date,due_date,
-                 subtotal,discount,points_discount,delivery_charge,rounding,tax,
+                 subtotal,discount,points_discount,delivery_charge,delivery_type,rounding,tax,
                  total,paid,status,note_customer,note_seller,
                  delivery_method,payment_method,theme_color,currency_symbol,currency_code,
                  public_token,created_by,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
             [
                 $book['id'],$type,$invoiceNo,$customerId,$supplierId,$date,$dueDate,
-                $subtotal,$discount,$pointsDiscount,$deliveryCharge,$rounding,$tax,
+                $subtotal,$discount,$pointsDiscount,$deliveryCharge,$deliveryType,$rounding,$tax,
                 $total,'draft',
                 $noteCustomer ?: null,$noteSeller ?: null,
                 $deliveryMethod ?: null,$paymentMethod ?: null,
@@ -137,6 +161,9 @@ class InvoiceController
         );
         $invoiceId = Database::lastId();
 
+        $details         = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
+        $inventoryMethod = $details['inventory_method'] ?? 'FIFO';
+
         foreach ($items as $item) {
             Database::run(
                 'INSERT INTO invoice_items (invoice_id,product_id,description,variant,qty,unit_price,discount_pct,line_total)
@@ -145,12 +172,45 @@ class InvoiceController
                  $item['qty'],$item['price'],$item['discPct'],$item['lineTot']]
             );
             if ($item['pid']) {
-                $sql = $type === 'sale'
-                    ? 'UPDATE products SET stock_qty=stock_qty-? WHERE id=? AND book_id=?'
-                    : 'UPDATE products SET stock_qty=stock_qty+? WHERE id=? AND book_id=?';
-                Database::run($sql, [$item['qty'],$item['pid'],$book['id']]);
+                if ($type === 'sale') {
+                    try { $this->deductFromBatches($item['pid'], $book['id'], $item['qty'], $inventoryMethod); }
+                    catch (\Throwable $e) {}
+                    Database::run(
+                        'UPDATE products SET stock_qty=GREATEST(0,stock_qty-?) WHERE id=? AND book_id=?',
+                        [$item['qty'],$item['pid'],$book['id']]
+                    );
+                } else {
+                    try { $this->createOrUpdateBatch($item['pid'], $book['id'], $item['qty'], $item['price']); }
+                    catch (\Throwable $e) {}
+                    Database::run(
+                        'UPDATE products SET stock_qty=stock_qty+? WHERE id=? AND book_id=?',
+                        [$item['qty'],$item['pid'],$book['id']]
+                    );
+                }
             }
         }
+
+        if ($deliveryType === 'other' && $deliveryCharge > 0) {
+            try {
+                Database::run(
+                    'INSERT INTO expenses (book_id,title,amount,expense_date,note,created_by,created_at)
+                     VALUES (?,?,?,?,?,?,?)',
+                    [$book['id'], 'Delivery (3rd party) — Invoice '.$invoiceNo,
+                     $deliveryCharge, $date, 'Auto-created from invoice #'.$invoiceNo, auth()['id'], now()]
+                );
+            } catch (\Throwable $e) {}
+        }
+
+        try {
+            $reportCat = $type === 'sale' ? 'invoice_sale' : 'invoice_purchase';
+            $reportDir = $type === 'sale' ? 'in' : 'out';
+            Database::run(
+                'INSERT INTO report_entries (book_id,type,category,amount,description,source_table,source_id,date,created_at)
+                 VALUES (?,?,?,?,?,?,?,?,?)',
+                [$book['id'],$reportDir,$reportCat,$total,
+                 ($type==='sale'?'Sale':'Purchase').' invoice '.$invoiceNo,'invoices',$invoiceId,$date,now()]
+            );
+        } catch (\Throwable $e) {}
 
         if ($customerId && $pointsDiscount > 0) {
             Database::run('UPDATE customers SET points=GREATEST(0,points-?) WHERE id=?',
@@ -161,12 +221,49 @@ class InvoiceController
         Database::run("UPDATE book_business_details SET {$counterCol}={$counterCol}+1 WHERE book_id=?",
             [$book['id']]);
 
-        // Handle supplier invoice attachment (purchase invoices)
         if ($type === 'purchase' && !empty($_FILES['attachment']['name']) && $_FILES['attachment']['error'] === 0) {
             $this->saveAttachment($invoiceId, $_FILES['attachment']);
         }
 
         redirect('/books/'.$book['id'].'/invoices/'.$invoiceId, ['success' => 'Invoice '.$invoiceNo.' created.']);
+    }
+
+    private function deductFromBatches(int $productId, int $bookId, float $qty, string $method): void
+    {
+        $order   = ($method === 'FIFO') ? 'ASC' : 'DESC';
+        $batches = Database::query(
+            "SELECT * FROM product_batches WHERE product_id=? AND book_id=? AND remaining_qty>0 ORDER BY created_at {$order}",
+            [$productId, $bookId]
+        );
+        $remaining = $qty;
+        foreach ($batches as $batch) {
+            if ($remaining <= 0) break;
+            $take = min((float)$batch['remaining_qty'], $remaining);
+            Database::run(
+                'UPDATE product_batches SET remaining_qty=GREATEST(0,remaining_qty-?) WHERE id=?',
+                [$take, $batch['id']]
+            );
+            $remaining -= $take;
+        }
+    }
+
+    private function createOrUpdateBatch(int $productId, int $bookId, float $qty, float $buyPrice): void
+    {
+        $batchCount = Database::row('SELECT COUNT(*)+1 AS n FROM product_batches WHERE product_id=?', [$productId]);
+        $n = (int)($batchCount['n'] ?? 1);
+        $barcode = 'BC'
+            . str_pad($bookId, 3, '0', STR_PAD_LEFT)
+            . str_pad($productId, 5, '0', STR_PAD_LEFT)
+            . str_pad($n, 4, '0', STR_PAD_LEFT);
+        $check = Database::row('SELECT id FROM product_batches WHERE barcode=?', [$barcode]);
+        if ($check) {
+            $barcode .= rand(10,99);
+        }
+        Database::run(
+            'INSERT INTO product_batches (product_id,book_id,barcode,buy_price,sell_price,initial_qty,remaining_qty,created_at)
+             VALUES (?,?,?,?,0,?,?,?)',
+            [$productId, $bookId, $barcode, $buyPrice, $qty, $qty, now()]
+        );
     }
 
     public function show(array $params): void
@@ -192,6 +289,19 @@ class InvoiceController
         $details = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
         $creator = Database::row('SELECT name FROM users WHERE id=?', [$invoice['created_by'] ?? 0]);
         (new \App\Services\InvoicePdfService())->generate($book,$invoice,$items,$customer,$supplier,$details,$creator);
+    }
+
+    public function thermal(array $params): void
+    {
+        if (guest()) redirect('/login');
+        $book    = $this->getBookOrFail($params['id']);
+        $invoice = $this->getInvoiceOrFail($params['invoice_id'], $book['id']);
+        $items   = Database::query('SELECT * FROM invoice_items WHERE invoice_id=?', [$invoice['id']]);
+        $customer= $invoice['customer_id'] ? Database::row('SELECT * FROM customers WHERE id=?', [$invoice['customer_id']]) : null;
+        $supplier= $invoice['supplier_id'] ? Database::row('SELECT * FROM suppliers WHERE id=?', [$invoice['supplier_id']]) : null;
+        $details = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
+        $paperWidth = (int)($_GET['w'] ?? 80);
+        require BASE_PATH . '/views/business/invoices/thermal.php';
     }
 
     public function recordPayment(array $params): void
@@ -242,7 +352,6 @@ class InvoiceController
         redirect('/books/'.$book['id'].'/invoices', ['success' => 'Invoice deleted.']);
     }
 
-
     public function uploadAttachment(array $params): void
     {
         if (guest()) redirect("/login");
@@ -261,19 +370,14 @@ class InvoiceController
         $allowed = ['pdf','jpg','jpeg','png','webp'];
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, $allowed) || $file['size'] > 10*1024*1024) return;
-
         $dir = config('upload.path') . '/attachments';
         if (!is_dir($dir)) mkdir($dir, 0755, true);
         if (!is_writable($dir)) return;
-
         $filename = 'inv_'.$invoiceId.'_'.date('Ymd_His').'_'.bin2hex(random_bytes(4)).'.'.$ext;
-        $dest     = $dir . '/' . $filename;
-
-        if (move_uploaded_file($file['tmp_name'], $dest)) {
+        if (move_uploaded_file($file['tmp_name'], $dir.'/'.$filename)) {
             Database::run(
-                'INSERT INTO invoice_attachments (invoice_id, filename, path, size, created_at)
-                 VALUES (?,?,?,?,?)',
-                [$invoiceId, $file['name'], 'attachments/'.$filename, $file['size'], now()]
+                'INSERT INTO invoice_attachments (invoice_id,filename,path,size,created_at) VALUES (?,?,?,?,?)',
+                [$invoiceId,$file['name'],'attachments/'.$filename,$file['size'],now()]
             );
         }
     }
