@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle ?? 'Byabsayee') ?></title>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="<?= asset('favicon.png') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= asset('css/auth.css') ?>">
@@ -17,7 +17,7 @@
     <div class="auth-brand">
         <div class="brand-content">
             <div class="logo">
-                <span class="logo-icon"><img src="favicon.png" alt=""></span>
+                <span class="logo-icon"><img src="<?= asset('favicon.png') ?>" alt=""></span>
                 <span class="logo-text">Byabsayee</span>
             </div>
             <p class="brand-tagline">ব্যবসার হিসাব, একটি জায়গায়।<br><small>Track every taka. Know your business.</small></p>
