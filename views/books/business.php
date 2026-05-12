@@ -347,7 +347,7 @@ $modules = [
     ['icon'=>'fa-user-tie',           'color'=>'#8b5cf6','label'=>'Suppliers', 'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/suppliers'],
     ['icon'=>'fa-id-badge',           'color'=>'#6366f1','label'=>'Employees', 'sub'=>'HR & Payroll',       'url'=>'/books/'.$bookId.'/employees'],
     ['icon'=>'fa-address-book',       'color'=>'#f97316','label'=>'Contacts',  'sub'=>'Everyone Known',     'url'=>'/books/'.$bookId.'/contacts'],
-    ['icon'=>'fa-ticket',             'color'=>'#d0ff00','label'=>'Coupons',   'sub'=>'Manage Coupons',     'url'=>'/books/'.$bookId.'/coupons'],
+    ['icon'=>'fa-ticket',             'color'=>'#2bff00','label'=>'Coupons',   'sub'=>'Manage Coupons',     'url'=>'/books/'.$bookId.'/coupons'],
     ['icon'=>'fa-truck-fast',         'color'=>'#0d9488','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
     ['icon'=>'fa-chart-line',         'color'=>'#14b8a6','label'=>'Reports',   'sub'=>'Profit & Loss',      'url'=>'/books/'.$bookId.'/reports'],
 ];
