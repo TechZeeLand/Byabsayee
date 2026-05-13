@@ -12,7 +12,7 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>">Dashboard</a> <span>›</span>
             <span>Returns</span>
         </div>
-        <h1><i class="fa-solid fa-rotate-left" style="color:var(--amber)"></i> Returns</h1>
+        <h1><i class="fa-solid fa-rotate-left" style="color:var(--brand)"></i> Returns</h1>
         <p>Sales returns from customers &amp; purchase returns to suppliers</p>
     </div>
     <div style="display:flex;gap:8px">

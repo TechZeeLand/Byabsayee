@@ -287,8 +287,14 @@ class InvoiceController
         $customer= $invoice['customer_id'] ? Database::row('SELECT * FROM customers WHERE id=?', [$invoice['customer_id']]) : null;
         $supplier= $invoice['supplier_id'] ? Database::row('SELECT * FROM suppliers WHERE id=?', [$invoice['supplier_id']]) : null;
         $details = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
-        $creator = Database::row('SELECT name FROM users WHERE id=?', [$invoice['created_by'] ?? 0]);
-        (new \App\Services\InvoicePdfService())->generate($book,$invoice,$items,$customer,$supplier,$details,$creator);
+        // Shared variables for the print view
+        $themeColor = $invoice['theme_color'] ?? $book['theme_color'] ?? '#1a6b4a';
+        $bizName    = $details['business_name'] ?? $book['name'];
+        $bizAddress = $details['address'] ?? $book['address'] ?? '';
+        $bizPhone   = $details['phone']   ?? $book['phone']   ?? '';
+        $bizEmail   = $details['email']   ?? $book['email']   ?? '';
+        $isPublic   = false;
+        require BASE_PATH . '/views/business/invoices/print.php';
     }
 
     public function thermal(array $params): void

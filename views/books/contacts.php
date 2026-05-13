@@ -10,7 +10,7 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>"><?= e($book['name']) ?></a> <span>›</span>
             <span>Contacts</span>
         </div>
-        <h1>Contacts</h1>
+        <h1><i class="fa-solid fa-address-book" style="color:var(--brand)"></i> Contacts</h1>
         <p><?= count($contacts) ?> contact<?= count($contacts) !== 1 ? 's' : '' ?> in this book</p>
     </div>
     <button class="btn btn-primary" data-modal="addContactModal">

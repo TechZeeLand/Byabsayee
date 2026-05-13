@@ -145,7 +145,7 @@ class BookController
 
             Database::run(
                 'UPDATE book_business_details SET business_name=?,phone=?,address=?,invoice_prefix=?,invoice_prefix_purchase=?,invoice_font=?,inventory_method=? WHERE book_id=?',
-                [$businessName,$phone ?: null,$address ?: null,$invoicePrefix,$invoicePrefixPur,$invoiceFont,$book['id']]
+                [$businessName,$phone ?: null,$address ?: null,$invoicePrefix,$invoicePrefixPur,$invoiceFont,in_array(strtoupper($_POST['inventory_method']??'FIFO'),['FIFO','LIFO'])?strtoupper($_POST['inventory_method']??'FIFO'):'FIFO',$book['id']]
             );
 
             // Delivery methods

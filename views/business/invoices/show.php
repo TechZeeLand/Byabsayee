@@ -56,7 +56,7 @@ ob_start();
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/pdf"
-           class="btn btn-secondary" target="_blank">📄 PDF</a>
+           class="btn btn-primary" target="_blank">🖨 Print / PDF</a>
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=80"
            class="btn btn-secondary" target="_blank">🖨 58/80mm Print</a>
         <?php if ($invoice['status'] === 'draft'): ?>
@@ -406,4 +406,19 @@ ob_start();
     </div>
 </div>
 
+<script>
+function copyInvLink() {
+    const url = document.getElementById('invPublicUrl')?.value;
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('shareBtn');
+        if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(()=>btn.textContent=orig,2000); }
+    }).catch(() => {
+        const el = document.createElement('textarea');
+        el.value = url; document.body.appendChild(el);
+        el.select(); document.execCommand('copy'); document.body.removeChild(el);
+        alert('Link copied: ' + url);
+    });
+}
+</script>
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

@@ -2,19 +2,23 @@
 namespace App\Controllers;
 use App\Helpers\Database;
 
+/**
+ * Public shareable invoice — /invoice/{token}
+ * Uses the same full-size print view as the private invoice print page.
+ * No login required.
+ */
 class PublicInvoiceController
 {
-    // GET /invoice/{token}
-    // Also: GET /Business/{name}/Invoice/{invoice_no}
     public function show(array $params): void
     {
         $token = $params['token'] ?? '';
 
         $invoice = Database::row(
-            'SELECT i.*, b.name AS book_name, b.logo AS book_logo,
-                    b.phone AS book_phone, b.email AS book_email,
+            'SELECT i.*, b.id AS book_id, b.name AS book_name,
+                    b.logo, b.phone AS book_phone, b.email AS book_email,
                     b.address AS book_address, b.theme_color,
-                    bd.business_name
+                    bd.business_name, bd.address AS biz_address,
+                    bd.phone AS biz_phone, bd.footer_note
              FROM invoices i
              JOIN books b ON b.id = i.book_id
              LEFT JOIN book_business_details bd ON bd.book_id = b.id
@@ -24,57 +28,58 @@ class PublicInvoiceController
 
         if (!$invoice) {
             http_response_code(404);
-            echo '<div style="font-family:sans-serif;text-align:center;padding:60px">
-                    <h2>Invoice not found</h2>
-                    <p style="color:#666">This invoice link is invalid or has expired.</p>
-                  </div>';
+            echo '<!DOCTYPE html><html><head><meta charset="UTF-8">
+                  <title>Not Found</title>
+                  <style>body{font-family:sans-serif;text-align:center;padding:80px;color:#555}
+                  h2{font-size:24px;margin-bottom:12px}</style></head><body>
+                  <h2>Invoice Not Found</h2>
+                  <p>This link is invalid or has expired.</p></body></html>';
             return;
         }
 
         $items    = Database::query('SELECT * FROM invoice_items WHERE invoice_id=?', [$invoice['id']]);
         $customer = $invoice['customer_id'] ? Database::row('SELECT * FROM customers WHERE id=?', [$invoice['customer_id']]) : null;
         $supplier = $invoice['supplier_id'] ? Database::row('SELECT * FROM suppliers WHERE id=?', [$invoice['supplier_id']]) : null;
-        $payments = Database::query('SELECT * FROM payments WHERE invoice_id=? ORDER BY date', [$invoice['id']]);
+        $details  = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$invoice['book_id']]);
 
-        require BASE_PATH . '/views/public/invoice.php';
+        // Build variables the print view expects
+        $book = [
+            'id'          => $invoice['book_id'],
+            'name'        => $invoice['book_name'],
+            'logo'        => $invoice['logo'] ?? '',
+            'phone'       => $invoice['book_phone'] ?? '',
+            'email'       => $invoice['book_email'] ?? '',
+            'address'     => $invoice['book_address'] ?? '',
+            'theme_color' => $invoice['theme_color'] ?? '#1a6b4a',
+        ];
+        $themeColor = $invoice['theme_color'] ?? '#1a6b4a';
+        $bizName    = $invoice['business_name'] ?? $invoice['book_name'];
+        $bizAddress = $invoice['biz_address'] ?? $invoice['book_address'] ?? '';
+        $bizPhone   = $invoice['biz_phone']   ?? $invoice['book_phone']   ?? '';
+        $bizEmail   = $details['email'] ?? '';
+        $isPublic   = true;   // hides the back button, shows minimal top bar
+
+        require BASE_PATH . '/views/business/invoices/print.php';
     }
 
-    // GET /Business/{slug}/Invoice/{invoice_no}
+    // Legacy slug-based URL — redirect to token URL
     public function showByNo(array $params): void
     {
         $slug      = $params['slug']       ?? '';
         $invoiceNo = $params['invoice_no'] ?? '';
 
         $invoice = Database::row(
-            'SELECT i.*, b.name AS book_name, b.logo AS book_logo,
-                    b.phone AS book_phone, b.email AS book_email,
-                    b.address AS book_address, b.theme_color,
-                    bd.business_name
-             FROM invoices i
-             JOIN books b ON b.id = i.book_id
-             LEFT JOIN book_business_details bd ON bd.book_id = b.id
-             WHERE i.invoice_no = ?
-               AND (LOWER(REPLACE(b.name," ","-")) = ? OR LOWER(REPLACE(bd.business_name," ","-")) = ?)
-               AND i.deleted_at IS NULL
-             LIMIT 1',
-            [$invoiceNo, strtolower($slug), strtolower($slug)]
+            'SELECT i.public_token FROM invoices i
+             JOIN books b ON b.id=i.book_id
+             WHERE i.invoice_no=? AND b.slug=? AND i.deleted_at IS NULL',
+            [$invoiceNo, $slug]
         );
 
-        if (!$invoice) {
-            http_response_code(404);
-            echo '<div style="font-family:sans-serif;text-align:center;padding:60px">
-                    <h2>Invoice not found</h2>
-                    <p style="color:#666">Could not find invoice '
-                    . htmlspecialchars($invoiceNo) . ' for ' . htmlspecialchars($slug) . '.</p>
-                  </div>';
-            return;
+        if ($invoice && !empty($invoice['public_token'])) {
+            header('Location: /invoice/' . $invoice['public_token'], true, 301);
+            exit;
         }
-
-        $items    = Database::query('SELECT * FROM invoice_items WHERE invoice_id=?', [$invoice['id']]);
-        $customer = $invoice['customer_id'] ? Database::row('SELECT * FROM customers WHERE id=?', [$invoice['customer_id']]) : null;
-        $supplier = $invoice['supplier_id'] ? Database::row('SELECT * FROM suppliers WHERE id=?', [$invoice['supplier_id']]) : null;
-        $payments = Database::query('SELECT * FROM payments WHERE invoice_id=? ORDER BY date', [$invoice['id']]);
-
-        require BASE_PATH . '/views/public/invoice.php';
+        http_response_code(404);
+        echo 'Invoice not found.';
     }
 }

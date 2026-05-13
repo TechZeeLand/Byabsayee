@@ -9,7 +9,7 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>">Dashboard</a> <span>›</span>
             <span>Expenses</span>
         </div>
-        <h1><i class="fa-solid fa-receipt" style="color:var(--red)"></i> Expenses</h1>
+        <h1><i class="fa-solid fa-receipt" style="color:var(--brand)"></i> Expenses</h1>
         <p>Track all outgoing costs</p>
     </div>
     <div style="display:flex;gap:8px">

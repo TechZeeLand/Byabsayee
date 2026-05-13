@@ -106,8 +106,8 @@ function navActive(string $path): string {
         <a href="/books/<?= $currentBookId ?>/employees"   class="nav-item <?= navActive('/books/'.$currentBookId.'/employees') ?>">    <i class="fa-solid fa-id-badge"></i> Employees</a>
         <a href="/books/<?= $currentBookId ?>/contacts"    class="nav-item <?= navActive('/books/'.$currentBookId.'/contacts') ?>">     <i class="fa-solid fa-address-book"></i> Contacts</a>
         <a href="/books/<?= $currentBookId ?>/coupons"     class="nav-item <?= navActive('/books/'.$currentBookId.'/coupons') ?>">      <i class="fa-solid fa-ticket"></i> Coupons</a>
-        <a href="/books/<?= $currentBookId ?>/deliveries"  class="nav-item <?= navActive('/books/'.$currentBookId.'/deliveries') ?>">   <i class="fa-solid fa-truck-fast"></i> Deliveries</a>
         <a href="/books/<?= $currentBookId ?>/returns"     class="nav-item <?= navActive('/books/'.$currentBookId.'/returns') ?>">      <i class="fa-solid fa-rotate-left"></i> Returns</a>
+        <a href="/books/<?= $currentBookId ?>/deliveries"  class="nav-item <?= navActive('/books/'.$currentBookId.'/deliveries') ?>">   <i class="fa-solid fa-truck-fast"></i> Deliveries</a>
         <a href="/books/<?= $currentBookId ?>/reports"     class="nav-item <?= navActive('/books/'.$currentBookId.'/reports') ?>">      <i class="fa-solid fa-chart-line"></i> Reports</a>
 
         <?php else: ?>

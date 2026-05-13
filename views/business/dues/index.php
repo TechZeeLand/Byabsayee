@@ -9,7 +9,7 @@ ob_start();
             <a href="/books/<?= $book['id'] ?>">Dashboard</a> <span>›</span>
             <span>Dues</span>
         </div>
-        <h1><i class="fa-solid fa-hand-holding-dollar" style="color:var(--amber)"></i> Dues</h1>
+        <h1><i class="fa-solid fa-hand-holding-dollar" style="color:var(--brand)"></i> Dues</h1>
         <p>Money customers owe your business</p>
     </div>
     <button class="btn btn-primary" data-modal="addDueModal">
