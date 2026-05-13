@@ -83,6 +83,8 @@ $status = $_GET['status'] ?? 'all';
                 <th style="text-align:right">Paid</th>
                 <th style="text-align:right">Due</th>
                 <th></th>
+                <th>Actions</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -104,7 +106,7 @@ $status = $_GET['status'] ?? 'all';
             <td style="text-align:right" class="td-amount <?= $due>0?'out':'' ?>"><?= format_money($due) ?></td>
             <td><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a></td>
             <td><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>/pdf" class="btn btn-sm btn-secondary" target="_blank"><i class="fa-solid fa-print"></i></a></td>
-            <td><button id="copyBtn" onclick="copyLink()" class="btn btn-sm btn-secondary"><i class="fa-solid fa-link"></i></button><span id="copyStatus"></span></td>
+            <td><button id="copyBtn" onclick="copyLink('<?= asset('invoice/'.$inv['public_token']) ?>')" class="btn btn-sm btn-secondary"><i class="fa-solid fa-link"></i></button></td>
         </tr>
         <?php endforeach; ?>
         </tbody>
@@ -113,21 +115,9 @@ $status = $_GET['status'] ?? 'all';
 <?php endif; ?>
 
 <script>
-    function copyLink() {
-
-        const linkToCopy = "<?= asset('invoice/'.$inv['public_token']) ?>";
-
-
-        navigator.clipboard.writeText(linkToCopy).then(() => {
-
-            const status = document.getElementById('copyStatus');
-            status.innerText = "Link copied!";
-
-            setTimeout(() => { status.innerText = ""; }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-        });
-    }
+    function copyLink(url) {
+    navigator.clipboard.writeText(url);
+}
 </script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>
