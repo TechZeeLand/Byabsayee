@@ -13,10 +13,7 @@ ob_start();
         <p>Add, edit, remove suppliers and keep track of all of them</p>
         <p><?= count($suppliers) ?> supplier<?= count($suppliers) !== 1 ? 's' : '' ?></p>
     </div>
-    <div style="display:flex;gap:8px">
         <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>
-        <button class="btn btn-secondary" data-modal="editSupplierModal">Edit</button>
-    </div>
 </div>
 
 <form method="GET" style="margin-bottom:16px;display:flex;gap:8px">
@@ -63,6 +60,7 @@ ob_start();
             <td style="text-align:right" class="td-amount"><?= format_money($s['total_billed']) ?></td>
             <td style="text-align:right" class="td-amount in"><?= format_money($s['total_paid']) ?></td>
             <td><a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>" class="btn btn-sm btn-secondary">View</a></td>
+            <td><button class="btn btn-sm btn-secondary" data-modal="editSupplierModal">Edit</button></td>
         </tr>
         <?php endforeach; ?>
         </tbody>
@@ -96,7 +94,7 @@ ob_start();
 <div class="modal-backdrop" id="editSupplierModal">
     <div class="modal">
         <div class="modal-title">Edit Supplier</div>
-        <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $supplier['id'] ?>/edit">
+        <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>/edit">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <div class="form-grid" style="gap:12px">
                 <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($supplier['name']) ?>" required></div>
