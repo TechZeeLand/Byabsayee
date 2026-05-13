@@ -111,7 +111,7 @@ ob_start();
     </div>
     <div>
       <div class="snb-name"><?= e($book['name']) ?></div>
-      <div class="snb-type"><?= $book['type']==='business'?'🏪 Business':'📓 Personal' ?></div>
+      <div class="snb-type"><?= $book['type']==='business'?'Business':'Personal' ?></div>
     </div>
   </div>
   <div class="stab-list">
@@ -162,7 +162,7 @@ ob_start();
               <div style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;color:#fff" id="bCardName"><?= e($book['name']) ?></div>
               <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px"><?= $book['type']==='business'?'Business Book':'Personal Book' ?></div>
             </div>
-            <div style="font-size:22px;opacity:.5">📒</div>
+            <div style="font-size:22px;opacity:.5"><i class="fa-solid fa-book" style="color: #ffffff;"></i></div>
           </div>
           <div style="padding:8px 18px;background:#fafafa;font-size:11px;color:var(--text-muted)">Dashboard preview</div>
         </div>
@@ -208,7 +208,7 @@ ob_start();
         <?php endif; ?>
         <div class="logo-zone" id="logoZone" onclick="document.getElementById('logoInput').click()">
           <img id="logoPreview" src="" alt="">
-          <div id="logoIcon" style="font-size:28px;margin-bottom:6px">🖼️</div>
+          <div id="logoIcon" style="font-size:28px;margin-bottom:6px"><i class="fa-solid fa-image" style="color: var(--brand);"></i></div>
           <p><strong>Click to upload</strong> or drag &amp; drop</p>
           <p style="margin-top:3px;font-size:11px">PNG, JPG, SVG up to 2 MB</p>
         </div>
@@ -304,7 +304,7 @@ ob_start();
       <div class="imc-wrap">
         <label class="imc <?= $cm==='FIFO'?'sel':'' ?>" id="fifoCard" onclick="selMethod('FIFO')">
           <input type="radio" name="inventory_method" value="FIFO" <?= $cm==='FIFO'?'checked':'' ?>>
-          <div class="imc-badge" style="background:#e0f2fe">📦</div>
+          <div class="imc-badge" style="background:#e0f2fe"><i class="fa-solid fa-arrows-spin" style="color: var(--brand);"></i></div>
           <h4>FIFO</h4>
           <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--brand);margin-bottom:5px">First In, First Out</div>
           <div class="imc-sub">Oldest purchased stock is sold first. Standard for most retail businesses.</div>
@@ -312,7 +312,7 @@ ob_start();
         </label>
         <label class="imc <?= $cm==='LIFO'?'sel':'' ?>" id="lifoCard" onclick="selMethod('LIFO')">
           <input type="radio" name="inventory_method" value="LIFO" <?= $cm==='LIFO'?'checked':'' ?>>
-          <div class="imc-badge" style="background:#fef3c7">🔄</div>
+          <div class="imc-badge" style="background:#fef3c7"><i class="fa-solid fa-arrows-turn-to-dots" style="color: var(--brand);"></i></div>
           <h4>LIFO</h4>
           <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--amber);margin-bottom:5px">Last In, First Out</div>
           <div class="imc-sub">Most recently purchased stock is sold first. Common in certain tax strategies.</div>

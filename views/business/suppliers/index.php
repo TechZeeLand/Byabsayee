@@ -13,7 +13,10 @@ ob_start();
         <p>Add, edit, remove suppliers and keep track of all of them</p>
         <p><?= count($suppliers) ?> supplier<?= count($suppliers) !== 1 ? 's' : '' ?></p>
     </div>
-    <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>
+    <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>
+        <button class="btn btn-secondary" data-modal="editSupplierModal">Edit</button>
+    </div>
 </div>
 
 <form method="GET" style="margin-bottom:16px;display:flex;gap:8px">
@@ -84,6 +87,28 @@ ob_start();
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Supplier</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="editSupplierModal">
+    <div class="modal">
+        <div class="modal-title">Edit Supplier</div>
+        <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $supplier['id'] ?>/edit">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($supplier['name']) ?>" required></div>
+                <div class="form-group full"><label>Company</label><input type="text" name="company" value="<?= e($supplier['company'] ?? '') ?>"></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" value="<?= e($supplier['phone'] ?? '') ?>"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= e($supplier['email'] ?? '') ?>"></div>
+                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:56px"><?= e($supplier['address'] ?? '') ?></textarea></div>
+                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"><?= e($supplier['notes'] ?? '') ?></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
     </div>
