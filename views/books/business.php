@@ -306,7 +306,7 @@ $recentActivity = array_slice($allActivity, 0, 20);
         <span class="count-label">Invoices</span>
     </a>
     <a href="/books/<?= $bookId ?>/products" class="count-card">
-        <i class="fa-solid fa-box" style="color: #f59e0b"></i>
+        <i class="fa-solid fa-box" style="color: #15ff00"></i>
         <span class="count-val"><?= (int)($stats['products'] ?? 0) ?></span>
         <span class="count-label">Products</span>
     </a>
@@ -321,7 +321,7 @@ $recentActivity = array_slice($allActivity, 0, 20);
         <span class="count-label">Suppliers</span>
     </a>
     <a href="/books/<?= $bookId ?>/deliveries" class="count-card">
-        <i class="fa-solid fa-truck-fast" style="color: #0d9488"></i>
+        <i class="fa-solid fa-truck-fast" style="color: #5409aa"></i>
         <span class="count-val"><?= (int)($stats['deliveries'] ?? 0) ?></span>
         <span class="count-label">Deliveries</span>
     </a>
@@ -329,6 +329,16 @@ $recentActivity = array_slice($allActivity, 0, 20);
         <i class="fa-solid fa-id-badge" style="color: #6366f1"></i>
         <span class="count-val"><?= (int)($stats['employees'] ?? 0) ?></span>
         <span class="count-label">Employees</span>
+    </a>
+    <a href="/books/<?= $bookId ?>/returns" class="count-card">
+        <i class="fa-solid fa-rotate-left" style="color: #ff0080"></i>
+        <span class="count-val"><?= (int)($stats['returns'] ?? 0) ?></span>
+        <span class="count-label">Returns</span>
+    </a>
+    <a href="/books/<?= $bookId ?>/coupons" class="count-card">
+        <i class="fa-solid fa-ticket" style="color: #d4ec69"></i>
+        <span class="count-val"><?= (int)($stats['coupons'] ?? 0) ?></span>
+        <span class="count-label">Coupons</span>
     </a>
 </div>
 
@@ -338,7 +348,7 @@ $recentActivity = array_slice($allActivity, 0, 20);
 <?php
 $modules = [
     ['icon'=>'fa-file-invoice',       'color'=>'#10b981','label'=>'Invoices',  'sub'=>'Add, Edit, Delete',  'url'=>'/books/'.$bookId.'/invoices'],
-    ['icon'=>'fa-box',                'color'=>'#f59e0b','label'=>'Products',  'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/products'],
+    ['icon'=>'fa-box',                'color'=>'#15ff00','label'=>'Products',  'sub'=>'Add, Edit, Remove',  'url'=>'/books/'.$bookId.'/products'],
     ['icon'=>'fa-piggy-bank',         'color'=>'#0ea5e9','label'=>'Funds',     'sub'=>'Add or Withdraw',    'url'=>'/books/'.$bookId.'/funds'],
     ['icon'=>'fa-receipt',            'color'=>'#ef4444','label'=>'Expenses',  'sub'=>'Various Costs',      'url'=>'/books/'.$bookId.'/expenses'],
     ['icon'=>'fa-hand-holding-dollar','color'=>'#d97706','label'=>'Dues',      'sub'=>'Owed by Others',     'url'=>'/books/'.$bookId.'/dues'],
@@ -349,7 +359,7 @@ $modules = [
     ['icon'=>'fa-address-book',       'color'=>'#f97316','label'=>'Contacts',  'sub'=>'Everyone Known',     'url'=>'/books/'.$bookId.'/contacts'],
     ['icon'=>'fa-rotate-left',        'color'=>'#ff0080','label'=>'Returns',   'sub'=>'Returned Goods',     'url'=>'/books/'.$bookId.'/returns'],
     ['icon'=>'fa-ticket',             'color'=>'#d4ec69','label'=>'Coupons',   'sub'=>'Manage Coupons',     'url'=>'/books/'.$bookId.'/coupons'],
-    ['icon'=>'fa-truck-fast',         'color'=>'#0d9488','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
+    ['icon'=>'fa-truck-fast',         'color'=>'#5409aa','label'=>'Deliveries','sub'=>'Track Deliveries',   'url'=>'/books/'.$bookId.'/deliveries'],
     ['icon'=>'fa-chart-line',         'color'=>'#14b8a6','label'=>'Reports',   'sub'=>'Profit & Loss',      'url'=>'/books/'.$bookId.'/reports'],
 ];
 foreach ($modules as $m): ?>
