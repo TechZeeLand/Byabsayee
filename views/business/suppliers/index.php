@@ -44,7 +44,7 @@ ob_start();
                 <th>Invoices</th>
                 <th style="text-align:right">Total Purchased</th>
                 <th style="text-align:right">Paid</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -59,8 +59,15 @@ ob_start();
             <td class="td-muted"><?= $s['invoice_count'] ?></td>
             <td style="text-align:right" class="td-amount"><?= format_money($s['total_billed']) ?></td>
             <td style="text-align:right" class="td-amount in"><?= format_money($s['total_paid']) ?></td>
-            <td><a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>" class="btn btn-sm btn-secondary">View</a></td>
-            <td><button class="btn btn-sm btn-secondary" data-modal="editSupplierModal">Edit</button></td>
+            <td>
+                <a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>" title="View" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
+                <button class="btn btn-sm btn-secondary" title="Edit" data-modal="editSupplierModal"><i class="fa-solid fa-pen"></i></button>
+                <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $supplier['id'] ?>/delete" style="display: inline;"
+                data-confirm="Delete <?= e($supplier['name']) ?>?">
+                <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+                <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
+                </form>
+            </td>
         </tr>
         <?php endforeach; ?>
         </tbody>

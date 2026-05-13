@@ -102,7 +102,8 @@ $status = $_GET['status'] ?? 'all';
             <td style="text-align:right" class="td-amount"><?= format_money($inv['total']) ?></td>
             <td style="text-align:right" class="td-amount in"><?= format_money($inv['paid']) ?></td>
             <td style="text-align:right" class="td-amount <?= $due>0?'out':'' ?>"><?= format_money($due) ?></td>
-            <td style="white-space:nowrap"><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a>
+            <td style="white-space:nowrap">
+            <a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a>
             <a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>/pdf" class="btn btn-sm btn-secondary" title="Print" target="_blank"><i class="fa-solid fa-print"></i></a>
             <button id="copyBtn" onclick="copyLink('<?= asset('invoice/'.$inv['public_token']) ?>')" title="Copy Link" class="btn btn-sm btn-secondary"><i class="fa-solid fa-link"></i></button></td>
         </tr>

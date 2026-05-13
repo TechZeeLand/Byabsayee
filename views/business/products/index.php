@@ -145,7 +145,7 @@ ob_start();
                     <i class="fa-solid fa-pen"></i>
                 </button>
                 <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
-                    title="Print" target="_blank" class="btn btn-sm btn-secondary">
+                    title="Print Barcode" target="_blank" class="btn btn-sm btn-secondary">
                     <i class="fa-solid fa-barcode"></i>
                 </a>
                 <form method="POST" action="/books/<?= $book['id'] ?>/products/<?= $p['id'] ?>/delete"

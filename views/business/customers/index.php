@@ -86,10 +86,10 @@ ob_start();
             <td style="white-space:nowrap">
                 <a href="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>" title="View" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
                 <button class="btn btn-sm btn-secondary" title="Edit" data-modal="editCustomerModal"><i class="fa-solid fa-pen"></i></button>
-                <form method="POST" action="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>/delete"
+                <form method="POST" action="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>/delete" style="display: inline;"
                     data-confirm="Delete <?= e($c['name']) ?>?">
                     <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
-                    <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
                 </form>
             </td>
         </tr>

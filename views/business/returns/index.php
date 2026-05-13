@@ -70,7 +70,7 @@ ob_start();
                 <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);text-align:right;border-bottom:1px solid var(--border)">Subtotal</th>
                 <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);text-align:right;border-bottom:1px solid var(--border)">Discount</th>
                 <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text-muted);text-align:right;border-bottom:1px solid var(--border)">Refund</th>
-                <th style="border-bottom:1px solid var(--border);width:40px"></th>
+                <th style="border-bottom:1px solid var(--border);width:40px">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -109,9 +109,12 @@ ob_start();
                     <?= $sym.number_format($r['total_refund'],0) ?>
                 </td>
                 <td style="padding:10px 14px">
-                    <a href="/books/<?= $book['id'] ?>/returns/<?= $r['id'] ?>" style="color:var(--text-muted);font-size:16px">
-                        <i class="fa-solid fa-eye"></i>
-                    </a>
+                    <a href="/books/<?= $book['id'] ?>/returns/<?= $r['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a>
+                    <form method="POST" action="/books/<?= $book['id'] ?>/returns/<?= $return['id'] ?>/delete"
+                        onsubmit="return confirm('Delete this return? Stock changes will NOT be reversed.')">
+                        <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+                        <button class="btn btn-sm btn-danger" style="color:var(--red)"><i class="fa-solid fa-trash"></i></button>
+                    </form>
                 </td>
             </tr>
         <?php endforeach; ?>
