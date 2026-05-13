@@ -45,7 +45,7 @@ function navActive(string $path): string {
 <!-- ===================== SIDEBAR ===================== -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-        <a href="/dashboard" class="sidebar-logo">
+        <a href="https://www.byabsayee.com" class="sidebar-logo">
             <div class="s-logo-icon">
                 <img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>"
                      onerror="this.parentElement.innerHTML='৳'"
