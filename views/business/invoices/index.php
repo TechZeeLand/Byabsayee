@@ -102,12 +102,32 @@ $status = $_GET['status'] ?? 'all';
             <td style="text-align:right" class="td-amount"><?= format_money($inv['total']) ?></td>
             <td style="text-align:right" class="td-amount in"><?= format_money($inv['paid']) ?></td>
             <td style="text-align:right" class="td-amount <?= $due>0?'out':'' ?>"><?= format_money($due) ?></td>
-            <td><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>" class="btn btn-sm btn-secondary">View</a></td>
+            <td><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a></td>
+            <td><a href="/books/<?= $book['id'] ?>/invoices/<?= $inv['id'] ?>/pdf" class="btn btn-sm btn-secondary" target="_blank"><i class="fa-solid fa-print"></i></a></td>
+            <td><button id="copyBtn" onclick="copyLink()" class="btn btn-sm btn-secondary"><i class="fa-solid fa-link"></i></button><span id="copyStatus"></span></td>
         </tr>
         <?php endforeach; ?>
         </tbody>
     </table>
 </div>
 <?php endif; ?>
+
+<script>
+    function copyLink() {
+
+        const linkToCopy = "<?= asset('invoice/'.$inv['public_token']) ?>";
+
+
+        navigator.clipboard.writeText(linkToCopy).then(() => {
+
+            const status = document.getElementById('copyStatus');
+            status.innerText = "Link copied!";
+
+            setTimeout(() => { status.innerText = ""; }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+</script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

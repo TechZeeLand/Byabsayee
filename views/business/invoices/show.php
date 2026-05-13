@@ -57,7 +57,7 @@ ob_start();
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/pdf"
            class="btn btn-primary" target="_blank">🖨 Print / PDF</a>
-        <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=80"
+        <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=58"
            class="btn btn-secondary" target="_blank">🖨 58/80mm Print</a>
         <?php if ($invoice['status'] === 'draft'): ?>
         <form method="POST" action="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/sent">
