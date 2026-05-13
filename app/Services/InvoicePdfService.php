@@ -13,7 +13,11 @@ class InvoicePdfService
         ?array $creator
     ): void {
         if (!class_exists('\Mpdf\Mpdf')) {
-            die('mPDF not installed. Run: docker exec byabsayee composer require mpdf/mpdf --working-dir=/Sites/byabsayee');
+            // Fallback: redirect to browser-printable thermal view
+            $bookId    = $book['id'];
+            $invoiceId = $invoice['id'];
+            header("Location: /books/{$bookId}/invoices/{$invoiceId}/thermal?w=80&autoprint=1");
+            exit;
         }
 
         // ── Settings ──────────────────────────────────────────────────────────
@@ -247,6 +251,7 @@ table { border-collapse:collapse; }
 
 </body></html>';
 
+        try {
         $mpdf = new \Mpdf\Mpdf([
             'mode'          => 'utf-8',
             'format'        => 'A4',
@@ -254,12 +259,17 @@ table { border-collapse:collapse; }
             'margin_bottom' => 48,
             'margin_left'   => 14,
             'margin_right'  => 14,
-            'tempDir'       => '/tmp',
+            'tempDir'       => sys_get_temp_dir(),
             'default_font'  => $font,
         ]);
         $mpdf->SetTitle('Invoice ' . $invoiceNo);
         $mpdf->WriteHTML($html);
         $mpdf->Output('Invoice-' . $invoiceNo . '.pdf', 'D');
+        } catch (\Throwable $e) {
+            error_log('mPDF error: ' . $e->getMessage());
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'PDF generation failed: ' . htmlspecialchars($e->getMessage()) . "\n\nTry the thermal print instead.";
+        }
     }
 
     // ── Number to words ───────────────────────────────────────────────────────

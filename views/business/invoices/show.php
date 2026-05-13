@@ -57,6 +57,8 @@ ob_start();
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/pdf"
            class="btn btn-secondary" target="_blank">📄 PDF</a>
+        <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=80"
+           class="btn btn-secondary" target="_blank">🖨 58/80mm Print</a>
         <?php if ($invoice['status'] === 'draft'): ?>
         <form method="POST" action="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/sent">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">

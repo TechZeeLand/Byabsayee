@@ -5,7 +5,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-    --brand:        #1a6b4a; 
+    --brand:        #1a6b4a;
     --brand-light:  #e8f5ef;
     --brand-dark:   #124d35;
     --accent:       #f5a623;

@@ -14,9 +14,12 @@ $status = $_GET['status'] ?? 'all';
         <h1><i class="fa-solid fa-file-invoice" style="color:var(--brand)"></i> Invoices</h1>
         <p>Add, edit, delete invoices and keep track of all of them</p>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/books/<?= $book['id'] ?>/invoices/create?type=sale" class="btn btn-primary">+ Sale Invoice</a>
         <a href="/books/<?= $book['id'] ?>/invoices/create?type=purchase" class="btn btn-secondary">+ Purchase</a>
+        <a href="/books/<?= $book['id'] ?>/returns" class="btn btn-secondary">
+            <i class="fa-solid fa-rotate-left"></i> Returns
+        </a>
     </div>
 </div>
 

@@ -203,8 +203,21 @@ ob_start();
                 <input type="number" name="points_discount" id="inp_points" value="0" min="0" step="1" oninput="recalc()" class="summary-input" disabled>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center">
-                <label style="color:var(--text-muted)">Delivery</label>
+                <label style="color:var(--text-muted)">Delivery Charge</label>
                 <input type="number" name="delivery_charge" id="inp_delivery" value="0" min="0" step="0.01" oninput="recalc()" class="summary-input">
+            </div>
+            <div style="padding:8px 10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">DELIVERY TYPE</div>
+                <div style="display:flex;gap:12px">
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+                        <input type="radio" name="delivery_type" value="own" checked style="accent-color:var(--brand)">
+                        <span><strong>Own</strong> <span style="color:var(--text-muted)">(income)</span></span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+                        <input type="radio" name="delivery_type" value="other" style="accent-color:var(--brand)">
+                        <span><strong>3rd Party</strong> <span style="color:var(--text-muted)">(→ expense)</span></span>
+                    </label>
+                </div>
             </div>
             <?php endif; ?>
             <div style="display:flex;justify-content:space-between;align-items:center">
@@ -213,10 +226,13 @@ ob_start();
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center">
                 <div>
-                    <label style="color:var(--text-muted)">Rounding</label>
-                    <div style="font-size:10px;color:var(--text-muted)">subtracts from total</div>
+                    <label style="color:var(--text-muted)">Round Down</label>
+                    <div style="font-size:10px;color:var(--text-muted)">removes cents from total</div>
                 </div>
-                <input type="number" name="rounding" id="inp_rounding" value="0" min="0" step="0.01" oninput="recalc()" class="summary-input">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                    <input type="checkbox" name="rounding_enabled" id="chk_rounding" onchange="recalc()" style="accent-color:var(--brand);width:16px;height:16px">
+                    <span id="roundingDisplay" style="font-size:12px;color:var(--text-muted)">off</span>
+                </label>
             </div>
             <div style="border-top:2px solid var(--border);padding-top:10px;display:flex;justify-content:space-between">
                 <strong style="font-size:16px">Grand Total</strong>
@@ -450,8 +466,18 @@ function recalc() {
     const points   = parseFloat(document.getElementById('inp_points')?.value)||0;
     const delivery = parseFloat(document.getElementById('inp_delivery')?.value)||0;
     const tax      = parseFloat(document.getElementById('inp_tax')?.value)||0;
-    const rounding = parseFloat(document.getElementById('inp_rounding')?.value)||0;
-    const total    = Math.max(0, subtotal-disc-points+delivery+tax-rounding);
+    const base     = subtotal - disc - points + delivery + tax;
+    const chkRound = document.getElementById('chk_rounding');
+    let   rounding = 0;
+    if (chkRound && chkRound.checked) {
+        rounding = base - Math.floor(base);
+        const rd = document.getElementById('roundingDisplay');
+        if (rd) rd.textContent = rounding > 0 ? '-'+currentSym+rounding.toFixed(2) : 'none';
+    } else {
+        const rd = document.getElementById('roundingDisplay');
+        if (rd) rd.textContent = 'off';
+    }
+    const total = Math.max(0, base - rounding);
     document.getElementById('summarySubtotal').textContent = currentSym+subtotal.toFixed(0);
     document.getElementById('summaryTotal').textContent    = currentSym+total.toFixed(0);
 }

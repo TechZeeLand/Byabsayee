@@ -144,7 +144,7 @@ class BookController
             $invoiceFont      = trim($_POST['invoice_font'] ?? 'DejaVu Sans');
 
             Database::run(
-                'UPDATE book_business_details SET business_name=?,phone=?,address=?,invoice_prefix=?,invoice_prefix_purchase=?,invoice_font=? WHERE book_id=?',
+                'UPDATE book_business_details SET business_name=?,phone=?,address=?,invoice_prefix=?,invoice_prefix_purchase=?,invoice_font=?,inventory_method=? WHERE book_id=?',
                 [$businessName,$phone ?: null,$address ?: null,$invoicePrefix,$invoicePrefixPur,$invoiceFont,$book['id']]
             );
 

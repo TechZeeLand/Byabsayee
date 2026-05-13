@@ -10,9 +10,16 @@ ob_start();
             <span>Products</span>
         </div>
         <h1><i class="fa-solid fa-box" style="color:var(--brand)"></i> Products & Stock</h1>
-        <p>Add, edit, remove products and keep track of all of them</p>
+        <p>Add, edit, remove products and keep track of all of them &nbsp;
+            <span style="font-size:11px;background:var(--brand);color:#fff;border-radius:20px;padding:2px 9px;font-weight:700">
+                <?= $inventoryMethod ?? 'FIFO' ?> mode
+            </span>
+        </p>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="/books/<?= $book['id'] ?>/products/barcodes" class="btn btn-secondary">
+            <i class="fa-solid fa-barcode"></i> Print Barcodes
+        </a>
         <button class="btn btn-secondary" data-modal="addCategoryModal">+ Category</button>
         <button class="btn btn-primary"   data-modal="addProductModal">+ Add Product</button>
     </div>
@@ -91,7 +98,26 @@ ob_start();
                     <?= e($p['product_code'] ?? 'PRD-?') ?>
                 </span>
                 <?php if ($p['barcode']): ?>
-                <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Bar: <?= e($p['barcode']) ?></div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px">
+                    <?= e($p['barcode']) ?>
+                    <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
+                       title="Print barcode" style="margin-left:4px;color:var(--brand)" target="_blank">
+                        <i class="fa-solid fa-barcode" style="font-size:10px"></i>
+                    </a>
+                </div>
+                <?php endif; ?>
+                <?php
+                $batches = $batchesByProduct[$p['id']] ?? [];
+                if (count($batches) > 1):
+                ?>
+                <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:2px">
+                    <?php foreach ($batches as $bi => $bat): ?>
+                    <span style="font-size:9px;background:var(--blue-bg,#e3f2fd);color:var(--blue);padding:1px 5px;border-radius:10px;white-space:nowrap"
+                          title="Barcode: <?= e($bat['barcode']) ?> | Buy: <?= format_money($bat['buy_price']) ?>">
+                        B<?= $bi+1 ?>: <?= rtrim(rtrim(number_format((float)$bat['remaining_qty'],3),'0'),'.') ?>
+                    </span>
+                    <?php endforeach; ?>
+                </div>
                 <?php endif; ?>
             </td>
             <td>

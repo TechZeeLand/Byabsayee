@@ -115,6 +115,18 @@ ob_start();
                 <?php endforeach; ?>
             </select>
         </div>
+        <div class="form-group">
+            <label>Inventory Method</label>
+            <select name="inventory_method">
+                <option value="FIFO" <?= ($details['inventory_method'] ?? 'FIFO') === 'FIFO' ? 'selected' : '' ?>>
+                    FIFO — First In, First Out (oldest stock sold first)
+                </option>
+                <option value="LIFO" <?= ($details['inventory_method'] ?? 'FIFO') === 'LIFO' ? 'selected' : '' ?>>
+                    LIFO — Last In, First Out (newest stock sold first)
+                </option>
+            </select>
+            <span style="font-size:11px;color:var(--text-muted)">Determines which purchase batch is deducted first when you make a sale invoice.</span>
+        </div>
     </div>
 </div>
 

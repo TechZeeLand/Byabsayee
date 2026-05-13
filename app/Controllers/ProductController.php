@@ -4,7 +4,6 @@ use App\Helpers\Database;
 
 class ProductController
 {
-    // ── List ─────────────────────────────────────────────────────────────────
     public function index(array $params): void
     {
         if (guest()) redirect('/login');
@@ -24,7 +23,7 @@ class ProductController
             $like = '%'.$search.'%';
             $p    = array_merge($p, [$like,$like,$like,$like]);
         }
-        if ($catId)           $sql .= ' AND p.category_id='.intval($catId);
+        if ($catId)            $sql .= ' AND p.category_id='.intval($catId);
         if ($filter === 'low') $sql .= ' AND p.stock_qty<=p.low_stock_alert AND p.stock_qty>0';
         if ($filter === 'out') $sql .= ' AND p.stock_qty<=0';
         $sql .= ' ORDER BY p.name';
@@ -40,10 +39,23 @@ class ProductController
             [$book['id']]
         );
 
+        // Load batches for each product (for expanded view)
+        $details = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
+        $inventoryMethod = $details['inventory_method'] ?? 'FIFO';
+        $batchesByProduct = [];
+        try {
+            $allBatches = Database::query(
+                'SELECT * FROM product_batches WHERE book_id=? ORDER BY product_id, created_at ASC',
+                [$book['id']]
+            );
+            foreach ($allBatches as $b) {
+                $batchesByProduct[$b['product_id']][] = $b;
+            }
+        } catch (\Throwable $e) {}
+
         require BASE_PATH . '/views/business/products/index.php';
     }
 
-    // ── Store new product ─────────────────────────────────────────────────────
     public function store(array $params): void
     {
         if (guest()) redirect('/login');
@@ -58,6 +70,7 @@ class ProductController
             $image = $this->handleImageUpload($_FILES['image']);
         }
 
+        // Auto-generate barcode placeholder; will be updated after insert
         Database::run(
             'INSERT INTO products
                 (book_id,category_id,name,sku,barcode,unit,buy_price,sell_price,
@@ -68,7 +81,7 @@ class ProductController
                 !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null,
                 $name,
                 trim($_POST['sku']     ?? '') ?: null,
-                trim($_POST['barcode'] ?? '') ?: null,
+                null,  // barcode set below
                 trim($_POST['unit']    ?? 'pcs'),
                 (float)($_POST['buy_price']       ?? 0),
                 (float)($_POST['sell_price']      ?? 0),
@@ -80,20 +93,40 @@ class ProductController
         );
         $productId = Database::lastId();
 
-        // Auto-generate product code
+        // Auto product code
         $code = 'PRD-' . str_pad($productId, 5, '0', STR_PAD_LEFT);
-        Database::run('UPDATE products SET product_code=? WHERE id=?', [$code, $productId]);
+        // Auto barcode: BC + bookId(3) + productId(6) = 11 chars
+        $autoBarcode = 'BC'
+            . str_pad($book['id'], 3, '0', STR_PAD_LEFT)
+            . str_pad($productId, 6, '0', STR_PAD_LEFT);
 
-        // Save variants if provided
+        $userBarcode = trim($_POST['barcode'] ?? '') ?: $autoBarcode;
+        // Ensure uniqueness
+        $existing = Database::row('SELECT id FROM products WHERE barcode=? AND id!=?', [$userBarcode, $productId]);
+        if ($existing) $userBarcode = $autoBarcode;
+
+        Database::run('UPDATE products SET product_code=?, barcode=? WHERE id=?', [$code, $userBarcode, $productId]);
+
+        // Create initial batch if stock > 0
+        $initQty = (float)($_POST['stock_qty'] ?? 0);
+        $buyPrice = (float)($_POST['buy_price'] ?? 0);
+        if ($initQty > 0) {
+            try {
+                $batchBarcode = $userBarcode; // first batch uses the product barcode
+                Database::run(
+                    'INSERT INTO product_batches (product_id,book_id,barcode,buy_price,sell_price,initial_qty,remaining_qty,created_at)
+                     VALUES (?,?,?,?,0,?,?,?)',
+                    [$productId, $book['id'], $batchBarcode, $buyPrice, $initQty, $initQty, now()]
+                );
+            } catch (\Throwable $e) {}
+        }
+
         $this->saveVariants($productId, $_POST['variants'] ?? []);
-
-        // Save category (create new if typed)
         $this->handleCategory($book['id'], $_POST, $productId);
 
-        redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" added. Code: '.$code]);
+        redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" added. Code: '.$code.' | Barcode: '.$userBarcode]);
     }
 
-    // ── Update product ────────────────────────────────────────────────────────
     public function update(array $params): void
     {
         if (guest()) redirect('/login');
@@ -110,6 +143,9 @@ class ProductController
             if ($new) $image = $new;
         }
 
+        // Keep existing barcode if no new one provided
+        $barcode = trim($_POST['barcode'] ?? '') ?: $product['barcode'];
+
         Database::run(
             'UPDATE products SET category_id=?,name=?,sku=?,barcode=?,unit=?,
              buy_price=?,sell_price=?,low_stock_alert=?,description=?,image=? WHERE id=?',
@@ -117,7 +153,7 @@ class ProductController
                 !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null,
                 $name,
                 trim($_POST['sku']     ?? '') ?: null,
-                trim($_POST['barcode'] ?? '') ?: null,
+                $barcode,
                 trim($_POST['unit']    ?? 'pcs'),
                 (float)($_POST['buy_price']       ?? 0),
                 (float)($_POST['sell_price']      ?? 0),
@@ -127,14 +163,12 @@ class ProductController
             ]
         );
 
-        // Replace variants
         Database::run('DELETE FROM product_variants WHERE product_id=?', [$product['id']]);
         $this->saveVariants($product['id'], $_POST['variants'] ?? []);
 
         redirect('/books/'.$book['id'].'/products', ['success' => '"'.$name.'" updated.']);
     }
 
-    // ── Adjust stock ──────────────────────────────────────────────────────────
     public function adjustStock(array $params): void
     {
         if (guest()) redirect('/login');
@@ -158,12 +192,30 @@ class ProductController
             [$product['id'],$type,$qty,$note ?: null,auth()['id'],now()]
         );
 
+        // Also adjust latest batch
+        if ($type === 'add') {
+            try {
+                $batchCount = Database::row('SELECT COUNT(*)+1 AS n FROM product_batches WHERE product_id=?', [$product['id']]);
+                $n = (int)($batchCount['n'] ?? 1);
+                $barcode = 'BC'
+                    . str_pad($book['id'], 3, '0', STR_PAD_LEFT)
+                    . str_pad($product['id'], 5, '0', STR_PAD_LEFT)
+                    . str_pad($n, 4, '0', STR_PAD_LEFT);
+                $check = Database::row('SELECT id FROM product_batches WHERE barcode=?', [$barcode]);
+                if ($check) $barcode .= rand(10,99);
+                Database::run(
+                    'INSERT INTO product_batches (product_id,book_id,barcode,buy_price,sell_price,initial_qty,remaining_qty,created_at)
+                     VALUES (?,?,?,?,0,?,?,?)',
+                    [$product['id'], $book['id'], $barcode, $product['buy_price'], $qty, $qty, now()]
+                );
+            } catch (\Throwable $e) {}
+        }
+
         redirect('/books/'.$book['id'].'/products', [
             'success' => 'Stock updated: "'.$product['name'].'". New qty: '.$newQty
         ]);
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
     public function delete(array $params): void
     {
         if (guest()) redirect('/login');
@@ -174,27 +226,52 @@ class ProductController
         redirect('/books/'.$book['id'].'/products', ['success' => '"'.$product['name'].'" deleted.']);
     }
 
-    // ── Category store ────────────────────────────────────────────────────────
     public function storeCategory(array $params): void
     {
         if (guest()) redirect('/login');
         csrf_verify();
         $book = $this->getBookOrFail($params['id']);
-
         $name     = trim($_POST['name']      ?? '');
         $parentId = !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null;
-
         if (!$name) redirect('/books/'.$book['id'].'/products', ['error' => 'Category name is required.']);
-
         Database::run(
             'INSERT INTO categories (book_id,parent_id,name,created_at) VALUES (?,?,?,?)',
             [$book['id'], $parentId, $name, now()]
         );
-
         redirect('/books/'.$book['id'].'/products', ['success' => 'Category "'.$name.'" created.']);
     }
 
-    // ── API: lookup product by code/barcode (for invoice barcode scan) ─────────
+    // ── Barcode print page ────────────────────────────────────────────────────
+    public function barcodes(array $params): void
+    {
+        if (guest()) redirect('/login');
+        $book = $this->getBookOrFail($params['id']);
+        $productId = (int)($_GET['product_id'] ?? 0);
+
+        if ($productId) {
+            $products = [Database::row('SELECT * FROM products WHERE id=? AND book_id=? AND deleted_at IS NULL', [$productId, $book['id']])];
+            $products = array_filter($products);
+        } else {
+            $products = Database::query('SELECT * FROM products WHERE book_id=? AND deleted_at IS NULL ORDER BY name', [$book['id']]);
+        }
+
+        // Load batches per product
+        $batchesByProduct = [];
+        try {
+            foreach ($products as $prod) {
+                $batches = Database::query(
+                    'SELECT * FROM product_batches WHERE product_id=? ORDER BY created_at ASC',
+                    [$prod['id']]
+                );
+                $batchesByProduct[$prod['id']] = $batches;
+            }
+        } catch (\Throwable $e) {}
+
+        $paperWidth = (int)($_GET['w'] ?? 58);
+        $details    = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
+        require BASE_PATH . '/views/business/products/barcodes.php';
+    }
+
     public function lookup(array $params): void
     {
         if (guest()) json_response(['error' => 'Unauthorized'], 401);
@@ -203,6 +280,7 @@ class ProductController
         $q = trim($_GET['q'] ?? '');
         if (!$q) json_response(['error' => 'No query'], 400);
 
+        // Also search by batch barcode
         $product = Database::row(
             'SELECT * FROM products
              WHERE book_id=? AND deleted_at IS NULL
@@ -210,13 +288,34 @@ class ProductController
             [$book['id'], $q, $q, $q]
         );
 
+        // If not found by product barcode, try batch barcode
+        if (!$product) {
+            try {
+                $batch = Database::row(
+                    'SELECT pb.*, p.* FROM product_batches pb
+                     JOIN products p ON p.id=pb.product_id
+                     WHERE pb.barcode=? AND pb.book_id=?',
+                    [$q, $book['id']]
+                );
+                if ($batch) {
+                    // Return product with batch info
+                    $product = Database::row('SELECT * FROM products WHERE id=?', [$batch['product_id']]);
+                }
+            } catch (\Throwable $e) {}
+        }
+
         if (!$product) json_response(['found' => false]);
 
         $variants = Database::query('SELECT * FROM product_variants WHERE product_id=?', [$product['id']]);
-        json_response(['found' => true, 'product' => $product, 'variants' => $variants]);
+        try {
+            $batches = Database::query(
+                'SELECT * FROM product_batches WHERE product_id=? AND remaining_qty>0 ORDER BY created_at ASC',
+                [$product['id']]
+            );
+        } catch (\Throwable $e) { $batches = []; }
+        json_response(['found' => true, 'product' => $product, 'variants' => $variants, 'batches' => $batches]);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
     private function saveVariants(int $productId, array $variants): void
     {
         foreach ($variants as $v) {
@@ -237,7 +336,6 @@ class ProductController
 
     private function handleCategory(int $bookId, array $post, int $productId): void
     {
-        // If user typed a new category name
         $newCat = trim($post['new_category'] ?? '');
         if ($newCat) {
             Database::run('INSERT INTO categories (book_id,name,created_at) VALUES (?,?,?)',
@@ -251,11 +349,9 @@ class ProductController
     {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($ext,['jpg','jpeg','png','webp']) || $file['size'] > 5*1024*1024) return null;
-
         $dir = config('upload.path').'/products';
         if (!is_dir($dir)) mkdir($dir, 0755, true);
         if (!is_writable($dir)) return null;
-
         $filename = date('Ymd_His').'_'.bin2hex(random_bytes(4)).'.'.$ext;
         return move_uploaded_file($file['tmp_name'], $dir.'/'.$filename) ? 'products/'.$filename : null;
     }
