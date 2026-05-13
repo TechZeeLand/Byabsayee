@@ -116,8 +116,13 @@ $status = $_GET['status'] ?? 'all';
 
 <script>
     function copyLink(url) {
-    navigator.clipboard.writeText(url);
-}
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    }
 </script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>
