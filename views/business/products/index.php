@@ -17,9 +17,6 @@ ob_start();
         </p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a href="/books/<?= $book['id'] ?>/products/barcodes" class="btn btn-secondary">
-            <i class="fa-solid fa-barcode"></i> Print Barcodes
-        </a>
         <button class="btn btn-secondary" data-modal="addCategoryModal">+ Category</button>
         <button class="btn btn-primary"   data-modal="addProductModal">+ Add Product</button>
     </div>
@@ -78,6 +75,8 @@ ob_start();
                 <th style="text-align:right">Stock</th>
                 <th>Status</th>
                 <th></th>
+                <th>Actions</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -100,10 +99,6 @@ ob_start();
                 <?php if ($p['barcode']): ?>
                 <div style="font-size:10px;color:var(--text-muted);margin-top:2px">
                     <?= e($p['barcode']) ?>
-                    <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
-                       title="Print barcode" style="margin-left:4px;color:var(--brand)" target="_blank">
-                        <i class="fa-solid fa-barcode" style="font-size:10px"></i>
-                    </a>
                 </div>
                 <?php endif; ?>
                 <?php
@@ -145,17 +140,21 @@ ob_start();
             <td style="white-space:nowrap">
                 <button class="btn btn-sm btn-secondary"
                         onclick="openAdjust(<?= $p['id'] ?>,'<?= e(addslashes($p['name'])) ?>',<?= (float)$p['stock_qty'] ?>)">
-                    Adjust
+                    <i class="fa-solid fa-sliders"></i>
                 </button>
                 <button class="btn btn-sm btn-secondary"
                         onclick="openEdit(<?= htmlspecialchars(json_encode($p),ENT_QUOTES) ?>,<?= htmlspecialchars(json_encode($variants),ENT_QUOTES) ?>)">
-                    Edit
+                    <i class="fa-solid fa-pen"></i>
                 </button>
                 <form method="POST" action="/books/<?= $book['id'] ?>/products/<?= $p['id'] ?>/delete"
                       style="display:inline" data-confirm="Delete &quot;<?= e($p['name']) ?>&quot;?">
                     <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
-                    <button class="btn btn-sm btn-danger">Del</button>
+                    <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
                 </form>
+                <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
+                    title="Print barcode" target="_blank">
+                    <i class="fa-solid fa-barcode" style="font-size:10px"></i>
+                </a>
             </td>
         </tr>
         <?php endforeach; ?>
