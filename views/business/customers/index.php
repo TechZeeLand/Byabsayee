@@ -52,7 +52,7 @@ ob_start();
                 <th style="text-align:right">Billed</th>
                 <th style="text-align:right">Paid</th>
                 <th style="text-align:right">Due</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -83,8 +83,14 @@ ob_start();
             <td style="text-align:right">
                 <span class="td-amount <?= $due > 0 ? 'out' : '' ?>"><?= format_money($due) ?></span>
             </td>
-            <td style="text-align:right;white-space:nowrap">
-                <a href="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>" class="btn btn-sm btn-secondary">View</a>
+            <td style="white-space:nowrap">
+                <a href="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>" title="View" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
+                <button class="btn btn-sm btn-secondary" title="Edit" data-modal="editCustomerModal"><i class="fa-solid fa-pen"></i></button>
+                <form method="POST" action="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>/delete"
+                    data-confirm="Delete <?= e($c['name']) ?>?">
+                    <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+                    <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </form>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -258,6 +264,27 @@ ob_start();
                     <label>Description</label>
                     <textarea name="description" id="ep_desc" style="min-height:56px"></textarea>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="editCustomerModal">
+    <div class="modal">
+        <div class="modal-title">Edit Customer</div>
+        <form method="POST" action="/books/<?= $book['id'] ?>/customers/<?= $c['id'] ?>/edit">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($c['name']) ?>" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" value="<?= e($c['phone']??'') ?>"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= e($c['email']??'') ?>"></div>
+                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:56px"><?= e($c['address']??'') ?></textarea></div>
+                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"><?= e($c['notes']??'') ?></textarea></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>

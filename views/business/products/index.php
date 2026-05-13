@@ -136,23 +136,23 @@ ob_start();
             </td>
             <td><span class="badge <?= $stockStatus['class'] ?>"><?= $stockStatus['label'] ?></span></td>
             <td style="white-space:nowrap">
-                <button class="btn btn-sm btn-secondary"
+                <button class="btn btn-sm btn-secondary" title="Adjust"
                         onclick="openAdjust(<?= $p['id'] ?>,'<?= e(addslashes($p['name'])) ?>',<?= (float)$p['stock_qty'] ?>)">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
-                <button class="btn btn-sm btn-secondary"
+                <button class="btn btn-sm btn-secondary" title="Edit"
                         onclick="openEdit(<?= htmlspecialchars(json_encode($p),ENT_QUOTES) ?>,<?= htmlspecialchars(json_encode($variants),ENT_QUOTES) ?>)">
                     <i class="fa-solid fa-pen"></i>
                 </button>
+                <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
+                    title="Print" target="_blank" class="btn btn-sm btn-secondary">
+                    <i class="fa-solid fa-barcode"></i>
+                </a>
                 <form method="POST" action="/books/<?= $book['id'] ?>/products/<?= $p['id'] ?>/delete"
                       style="display:inline" data-confirm="Delete &quot;<?= e($p['name']) ?>&quot;?">
                     <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
-                    <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
+                    <button class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
                 </form>
-                <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
-                    title="Print barcode" target="_blank" class="btn btn-sm btn-secondary">
-                    <i class="fa-solid fa-barcode"></i>
-                </a>
             </td>
         </tr>
         <?php endforeach; ?>
