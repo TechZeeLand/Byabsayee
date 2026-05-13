@@ -74,9 +74,7 @@ ob_start();
                 <th style="text-align:right">Sell</th>
                 <th style="text-align:right">Stock</th>
                 <th>Status</th>
-                <th></th>
                 <th>Actions</th>
-                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -152,8 +150,8 @@ ob_start();
                     <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
                 </form>
                 <a href="/books/<?= $book['id'] ?>/products/barcodes?product_id=<?= $p['id'] ?>"
-                    title="Print barcode" target="_blank">
-                    <i class="fa-solid fa-barcode" style="font-size:10px"></i>
+                    title="Print barcode" target="_blank" class="btn btn-sm btn-secondary">
+                    <i class="fa-solid fa-barcode"></i>
                 </a>
             </td>
         </tr>
