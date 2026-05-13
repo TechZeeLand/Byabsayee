@@ -97,12 +97,12 @@ ob_start();
         <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>/edit">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <div class="form-grid" style="gap:12px">
-                <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($supplier['name']) ?>" required></div>
-                <div class="form-group full"><label>Company</label><input type="text" name="company" value="<?= e($supplier['company'] ?? '') ?>"></div>
-                <div class="form-group"><label>Phone</label><input type="text" name="phone" value="<?= e($supplier['phone'] ?? '') ?>"></div>
-                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= e($supplier['email'] ?? '') ?>"></div>
-                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:56px"><?= e($supplier['address'] ?? '') ?></textarea></div>
-                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"><?= e($supplier['notes'] ?? '') ?></textarea></div>
+                <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($s['name']) ?>" required></div>
+                <div class="form-group full"><label>Company</label><input type="text" name="company" value="<?= e($s['company'] ?? '') ?>"></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" value="<?= e($s['phone'] ?? '') ?>"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= e($s['email'] ?? '') ?>"></div>
+                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:56px"><?= e($s['address'] ?? '') ?></textarea></div>
+                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"><?= e($s['notes'] ?? '') ?></textarea></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
