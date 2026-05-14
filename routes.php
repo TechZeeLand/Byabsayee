@@ -15,6 +15,8 @@ use App\Controllers\BookSearchController;
 use App\Controllers\ExpensesController;
 use App\Controllers\FundsController;
 use App\Controllers\DuesController;
+use App\Controllers\DebtController;
+use App\Controllers\CouponController;
 use App\Controllers\ReturnController;
 use App\Controllers\ReportsController;
 
@@ -127,16 +129,35 @@ $router->post('/books/{id}/privileges/{priv_id}/delete',        [PrivilegeContro
 // ── Expenses ───────────────────────────────────────────────────────────────────
 $router->get( '/books/{id}/expenses',                           [ExpensesController::class, 'index']);
 $router->post('/books/{id}/expenses/add',                       [ExpensesController::class, 'store']);
+$router->post('/books/{id}/expenses/{expense_id}/edit',         [ExpensesController::class, 'update']);
 $router->post('/books/{id}/expenses/{expense_id}/delete',       [ExpensesController::class, 'delete']);
 $router->post('/books/{id}/expenses/category/add',              [ExpensesController::class, 'storeCategory']);
 
 // ── Funds ──────────────────────────────────────────────────────────────────────
 $router->get( '/books/{id}/funds',                              [FundsController::class, 'index']);
 $router->post('/books/{id}/funds/add',                          [FundsController::class, 'store']);
+$router->post('/books/{id}/funds/{fund_id}/edit',               [FundsController::class, 'update']);
 $router->post('/books/{id}/funds/{fund_id}/delete',             [FundsController::class, 'delete']);
 
 // ── Dues ───────────────────────────────────────────────────────────────────────
 $router->get( '/books/{id}/dues',                               [DuesController::class, 'index']);
 $router->post('/books/{id}/dues/add',                           [DuesController::class, 'store']);
+$router->post('/books/{id}/dues/{due_id}/edit',                 [DuesController::class, 'update']);
 $router->post('/books/{id}/dues/{due_id}/pay',                  [DuesController::class, 'recordPayment']);
 $router->post('/books/{id}/dues/{due_id}/cancel',               [DuesController::class, 'cancel']);
+$router->post('/books/{id}/dues/{due_id}/delete',               [DuesController::class, 'delete']);
+
+// ── Debts ──────────────────────────────────────────────────────────────────────
+$router->get( '/books/{id}/debts',                              [DebtController::class, 'index']);
+$router->post('/books/{id}/debts/add',                          [DebtController::class, 'store']);
+$router->post('/books/{id}/debts/{debt_id}/edit',               [DebtController::class, 'update']);
+$router->post('/books/{id}/debts/{debt_id}/pay',                [DebtController::class, 'recordPayment']);
+$router->post('/books/{id}/debts/{debt_id}/cancel',             [DebtController::class, 'cancel']);
+$router->post('/books/{id}/debts/{debt_id}/delete',             [DebtController::class, 'delete']);
+
+// ── Coupons ────────────────────────────────────────────────────────────────────
+$router->get( '/books/{id}/coupons',                            [CouponController::class, 'index']);
+$router->post('/books/{id}/coupons/add',                        [CouponController::class, 'store']);
+$router->post('/books/{id}/coupons/{coupon_id}/edit',           [CouponController::class, 'update']);
+$router->post('/books/{id}/coupons/{coupon_id}/toggle',         [CouponController::class, 'toggle']);
+$router->post('/books/{id}/coupons/{coupon_id}/delete',         [CouponController::class, 'delete']);

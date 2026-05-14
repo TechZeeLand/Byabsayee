@@ -92,7 +92,7 @@ ob_start();
         <tbody>
         <?php foreach ($expenses as $exp): ?>
         <tr>
-            <td class="td-muted" style="white-space:nowrap"><?= format_date($exp['date']) ?></td>
+            <td class="td-muted" style="white-space:nowrap"><?= format_date($exp['expense_date']) ?></td>
             <td>
                 <div style="font-weight:500"><?= e($exp['title']) ?></div>
                 <?php if (!empty($exp['note'])): ?>
@@ -112,8 +112,8 @@ ob_start();
             <td class="td-muted"><?= e($exp['paid_to'] ?? '—') ?></td>
             <td style="font-weight:700;color:var(--red)"><?= format_money((float)$exp['amount']) ?></td>
             <td>
-                <?php if (!empty($exp['receipt'])): ?>
-                <a href="<?= asset('uploads/'.$exp['receipt']) ?>"
+                <?php if (!empty($exp['attachment'])): ?>
+                <a href="<?= asset('uploads/'.$exp['attachment']) ?>"
                    target="_blank"
                    class="btn btn-sm btn-secondary"
                    title="View receipt">
@@ -123,9 +123,23 @@ ob_start();
                 <span class="td-muted">—</span>
                 <?php endif; ?>
             </td>
-            <td style="text-align:right">
-                <form method="POST" action="/books/<?= $book['id'] ?>/expenses/<?= $exp['id'] ?>/delete"
-                      data-confirm="Delete this expense?">
+            <td style="text-align:right;white-space:nowrap">
+                <button class="btn btn-sm btn-secondary" title="Edit"
+                        onclick="openExpenseEdit(
+                            <?= $exp['id'] ?>,
+                            '<?= e(addslashes($exp['title'])) ?>',
+                            <?= (float)$exp['amount'] ?>,
+                            '<?= $exp['expense_date'] ?>',
+                            <?= $exp['category_id'] ?? 'null' ?>,
+                            '<?= e(addslashes($exp['paid_to'] ?? '')) ?>',
+                            '<?= e(addslashes($exp['note'] ?? '')) ?>'
+                        )">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <form method="POST"
+                      action="/books/<?= $book['id'] ?>/expenses/<?= $exp['id'] ?>/delete"
+                      style="display:inline"
+                      onsubmit="return confirm('Delete this expense?')">
                     <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
                     <button class="btn btn-sm btn-secondary" title="Delete">
                         <i class="fa-solid fa-trash" style="color:var(--red)"></i>
@@ -207,6 +221,56 @@ ob_start();
 </div>
 
 
+<!-- ══ EDIT EXPENSE MODAL ══ -->
+<div class="modal-backdrop" id="editExpenseModal">
+    <div class="modal">
+        <div class="modal-title">
+            <i class="fa-solid fa-pen" style="color:var(--brand)"></i> Edit Expense
+        </div>
+        <form method="POST" id="editExpenseForm">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group full">
+                    <label>Title *</label>
+                    <input type="text" name="title" id="editExpTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" id="editExpAmount" min="0.01" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" name="date" id="editExpDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category_id" id="editExpCat">
+                        <option value="">— None —</option>
+                        <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>"><?= e($cat['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Paid To</label>
+                    <input type="text" name="paid_to" id="editExpPaidTo">
+                </div>
+                <div class="form-group full">
+                    <label>Note</label>
+                    <textarea name="note" id="editExpNote" style="min-height:50px"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-check"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <!-- ══ ADD CATEGORY MODAL ══ -->
 <div class="modal-backdrop" id="addCategoryModal">
     <div class="modal" style="max-width:380px">
@@ -221,9 +285,27 @@ ob_start();
                     <input type="text" name="name" required placeholder="e.g. Rent, Utility, Salary…">
                 </div>
                 <div class="form-group full">
-                    <label>Icon (Font Awesome class)</label>
-                    <input type="text" name="icon" value="fa-tag" placeholder="fa-tag">
-                    <small class="form-hint">e.g. fa-bolt, fa-building, fa-truck</small>
+                    <label>Icon</label>
+                    <div class="icon-picker" id="iconPicker">
+                        <?php
+                        $iconList = [
+                            'fa-tag'=>'Tag','fa-bolt'=>'Electric','fa-building'=>'Building',
+                            'fa-users'=>'Team','fa-truck'=>'Truck','fa-wrench'=>'Tools',
+                            'fa-bullhorn'=>'Marketing','fa-utensils'=>'Food','fa-laptop'=>'Tech',
+                            'fa-car'=>'Vehicle','fa-home'=>'Home','fa-heart'=>'Health',
+                            'fa-graduation-cap'=>'Education','fa-globe'=>'Internet',
+                            'fa-box'=>'Supplies','fa-coffee'=>'Coffee','fa-seedling'=>'Agri',
+                        ];
+                        foreach ($iconList as $cls => $lbl):
+                        ?>
+                        <button type="button" class="icon-opt" data-icon="<?= $cls ?>" title="<?= $lbl ?>"
+                                onclick="selectIcon(this)">
+                            <i class="fa-solid <?= $cls ?>"></i>
+                        </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <input type="hidden" name="icon" id="selectedIcon" value="fa-tag">
+                    <small class="form-hint" id="selectedIconLabel">Selected: Tag</small>
                 </div>
             </div>
             <div class="modal-footer">
@@ -235,5 +317,42 @@ ob_start();
         </form>
     </div>
 </div>
+
+<style>
+.icon-picker { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.icon-opt {
+    width:36px; height:36px; border:2px solid var(--border);
+    border-radius:var(--radius); background:var(--white); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px; color:var(--text-muted); transition:all .15s;
+}
+.icon-opt:hover { border-color:var(--brand); color:var(--brand); }
+.icon-opt.selected { border-color:var(--brand); background:var(--brand-light); color:var(--brand); }
+</style>
+
+<script>
+// Icon picker
+document.querySelector('.icon-opt[data-icon="fa-tag"]')?.classList.add('selected');
+
+function selectIcon(btn) {
+    document.querySelectorAll('.icon-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('selectedIcon').value = btn.dataset.icon;
+    document.getElementById('selectedIconLabel').textContent = 'Selected: ' + btn.title;
+}
+
+// Edit expense
+function openExpenseEdit(id, title, amount, date, catId, paidTo, note) {
+    document.getElementById('editExpenseForm').action = '/books/<?= $book['id'] ?>/expenses/' + id + '/edit';
+    document.getElementById('editExpTitle').value   = title;
+    document.getElementById('editExpAmount').value  = amount;
+    document.getElementById('editExpDate').value    = date;
+    document.getElementById('editExpPaidTo').value  = paidTo;
+    document.getElementById('editExpNote').value    = note;
+    const catSel = document.getElementById('editExpCat');
+    catSel.value = catId || '';
+    document.getElementById('editExpenseModal').classList.add('open');
+}
+</script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

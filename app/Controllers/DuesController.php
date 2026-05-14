@@ -62,6 +62,11 @@ class DuesController
         );
         $symbol = $defaultCurrency['symbol'] ?? '৳';
 
+        $customers = Database::query(
+            'SELECT id, name, phone FROM customers WHERE book_id=? AND deleted_at IS NULL ORDER BY name',
+            [$book['id']]
+        );
+
         require BASE_PATH . '/views/business/dues/index.php';
     }
 
@@ -90,12 +95,52 @@ class DuesController
         }
 
         Database::run(
-            'INSERT INTO dues (book_id, customer_id, title, amount, paid_amount, due_date, status, created_by, created_at)
-             VALUES (?,?,?,?,0,?,?,?,?)',
-            [$book['id'], $customerId, $title, $amount, $dueDate, 'unpaid', auth()['id'], now()]
+            'INSERT INTO dues (book_id, customer_id, title, amount, paid_amount, due_date, note, status, created_by, created_at)
+             VALUES (?,?,?,?,0,?,?,?,?,?)',
+            [$book['id'], $customerId, $title, $amount, $dueDate, $note ?: null, 'unpaid', auth()['id'], now()]
         );
 
         redirect('/books/'.$book['id'].'/dues', ['success' => 'Due added.']);
+    }
+
+    public function update(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+        $due  = $this->getDueOrFail($params['due_id'], $book['id']);
+
+        // Only allow editing if not fully paid or cancelled
+        if (in_array($due['status'], ['paid', 'cancelled'])) {
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Cannot edit a paid or cancelled due.']);
+        }
+
+        $title   = trim($_POST['title'] ?? '');
+        $amount  = (float)($_POST['amount'] ?? 0);
+        $dueDate = $_POST['due_date'] ?: null;
+        $note    = trim($_POST['note'] ?? '');
+
+        if (!$title || $amount <= 0) {
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Title and amount are required.']);
+        }
+
+        // Recalculate status based on paid amount vs new total
+        $paid      = (float)$due['paid_amount'];
+        $newStatus = $due['status'];
+        if ($paid >= $amount - 0.001) {
+            $newStatus = 'paid';
+        } elseif ($paid > 0) {
+            $newStatus = 'partial';
+        } else {
+            $newStatus = 'unpaid';
+        }
+
+        Database::run(
+            'UPDATE dues SET title=?, amount=?, due_date=?, note=?, status=?, updated_at=? WHERE id=? AND book_id=?',
+            [$title, $amount, $dueDate, $note ?: null, $newStatus, now(), $due['id'], $book['id']]
+        );
+
+        redirect('/books/'.$book['id'].'/dues', ['success' => 'Due updated.']);
     }
 
     public function recordPayment(array $params): void
@@ -122,10 +167,11 @@ class DuesController
         );
 
         Database::run(
-            'INSERT INTO due_payments (due_id, book_id, amount, payment_method, paid_by, paid_at)
-             VALUES (?,?,?,?,?,?)',
+            'INSERT INTO due_payments (due_id, book_id, amount, payment_method, note, paid_by, paid_at)
+             VALUES (?,?,?,?,?,?,?)',
             [$due['id'], $book['id'], $amount,
              trim($_POST['payment_method'] ?? 'cash'),
+             trim($_POST['note'] ?? '') ?: null,
              auth()['id'], now()]
         );
 
@@ -145,6 +191,16 @@ class DuesController
         );
 
         redirect('/books/'.$book['id'].'/dues', ['success' => 'Due cancelled.']);
+    }
+
+    public function delete(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+
+        Database::run('DELETE FROM dues WHERE id=? AND book_id=?', [$params['due_id'], $book['id']]);
+        redirect('/books/'.$book['id'].'/dues', ['success' => 'Due deleted.']);
     }
 
     public static function createFromInvoice(array $invoice): void
@@ -188,10 +244,7 @@ class DuesController
 
     private function getDueOrFail(string $dueId, int $bookId): array
     {
-        $due = Database::row(
-            'SELECT * FROM dues WHERE id=? AND book_id=?',
-            [$dueId, $bookId]
-        );
+        $due = Database::row('SELECT * FROM dues WHERE id=? AND book_id=?', [$dueId, $bookId]);
         if (!$due) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $due;
     }

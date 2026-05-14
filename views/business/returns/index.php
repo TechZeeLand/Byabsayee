@@ -108,12 +108,12 @@ ob_start();
                 <td style="padding:10px 14px;text-align:right;font-weight:700;font-size:14px;color:<?= $isSale ? 'var(--red)' : 'var(--green)' ?>">
                     <?= $sym.number_format($r['total_refund'],0) ?>
                 </td>
-                <td style="padding:10px 14px">
+                <td style="white-space:nowrap">
                     <a href="/books/<?= $book['id'] ?>/returns/<?= $r['id'] ?>" class="btn btn-sm btn-secondary" title="View"><i class="fa-solid fa-eye"></i></a>
                     <form method="POST" action="/books/<?= $book['id'] ?>/returns/<?= $return['id'] ?>/delete"
                         onsubmit="return confirm('Delete this return? Stock changes will NOT be reversed.')">
                         <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
-                        <button class="btn btn-sm btn-danger" style="color:var(--red)"><i class="fa-solid fa-trash"></i></button>
+                        <button class="btn btn-sm btn-danger"><i class="fa-solid fa-trash" style="color: #fff;"></i></button>
                     </form>
                 </td>
             </tr>

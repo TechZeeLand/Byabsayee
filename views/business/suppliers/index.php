@@ -59,7 +59,7 @@ ob_start();
             <td class="td-muted"><?= $s['invoice_count'] ?></td>
             <td style="text-align:right" class="td-amount"><?= format_money($s['total_billed']) ?></td>
             <td style="text-align:right" class="td-amount in"><?= format_money($s['total_paid']) ?></td>
-            <td>
+            <td style="white-space:nowrap">
                 <a href="/books/<?= $book['id'] ?>/suppliers/<?= $s['id'] ?>" title="View" class="btn btn-sm btn-secondary"><i class="fa-solid fa-eye"></i></a>
                 <button class="btn btn-sm btn-secondary" title="Edit" data-modal="editSupplierModal"><i class="fa-solid fa-pen"></i></button>
                 <form method="POST" action="/books/<?= $book['id'] ?>/suppliers/<?= $supplier['id'] ?>/delete" style="display: inline;"

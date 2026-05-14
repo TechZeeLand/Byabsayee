@@ -9,10 +9,10 @@ class ReportsController
         if (guest()) redirect('/login');
         $book = $this->getBookOrFail($params['id']);
 
-        $month    = $_GET['month'] ?? date('Y-m');
-        $typeFilter = $_GET['type'] ?? 'all';
-        $dateFrom = $month . '-01';
-        $dateTo   = date('Y-m-t', strtotime($dateFrom));
+        $month      = $_GET['month'] ?? date('Y-m');
+        $typeFilter = $_GET['type']  ?? 'all';
+        $dateFrom   = $month . '-01';
+        $dateTo     = date('Y-m-t', strtotime($dateFrom));
 
         $entries = [];
         $sym     = $this->getSym($book['id']);
@@ -72,7 +72,7 @@ class ReportsController
             foreach ($rows as $r) {
                 $entries[] = array_merge($r, ['href' => '/books/'.$book['id'].'/returns/'.$r['id']]);
             }
-            // Discount kept (IN)
+            // Discount kept from return (IN)
             $rows2 = Database::query(
                 "SELECT r.id, r.return_no AS invoice_no, r.date,
                         r.discount AS amount, 'in' AS direction,
@@ -144,7 +144,7 @@ class ReportsController
             }
         } catch (\Throwable $e) {}
 
-        // ── Funds IN ────────────────────────────────────────────────────────
+        // ── Funds IN ─────────────────────────────────────────────────────────
         try {
             $rows = Database::query(
                 "SELECT f.id, COALESCE(f.title,'Fund') AS invoice_no, f.fund_date AS date,
@@ -159,7 +159,7 @@ class ReportsController
             }
         } catch (\Throwable $e) {}
 
-        // ── Funds OUT ───────────────────────────────────────────────────────
+        // ── Funds OUT ────────────────────────────────────────────────────────
         try {
             $rows = Database::query(
                 "SELECT f.id, COALESCE(f.title,'Withdrawal') AS invoice_no, f.fund_date AS date,
@@ -174,16 +174,58 @@ class ReportsController
             }
         } catch (\Throwable $e) {}
 
+        // ── Due Payments — customer pays back (IN) ───────────────────────────
+        try {
+            $rows = Database::query(
+                "SELECT dp.id,
+                        CONCAT('Due: ', d.title) AS invoice_no,
+                        DATE(dp.paid_at) AS date,
+                        dp.amount, 'in' AS direction,
+                        CONCAT('Due Payment — ', COALESCE(c.name,'Unknown')) AS category,
+                        'due_payments' AS src, dp.id AS src_id,
+                        COALESCE(c.name,'Unknown Customer') AS party
+                 FROM due_payments dp
+                 JOIN dues d ON d.id = dp.due_id
+                 LEFT JOIN customers c ON c.id = d.customer_id
+                 WHERE dp.book_id=? AND DATE(dp.paid_at) BETWEEN ? AND ?
+                 ORDER BY dp.paid_at DESC",
+                [$book['id'], $dateFrom, $dateTo]
+            );
+            foreach ($rows as $r) {
+                $entries[] = array_merge($r, ['href' => '/books/'.$book['id'].'/dues']);
+            }
+        } catch (\Throwable $e) {}
+
+        // ── Debt Payments — you repay debt (OUT) ─────────────────────────────
+        try {
+            $rows = Database::query(
+                "SELECT dp.id,
+                        CONCAT('Debt: ', d.title) AS invoice_no,
+                        DATE(dp.paid_at) AS date,
+                        dp.amount, 'out' AS direction,
+                        CONCAT('Debt Repayment — ', COALESCE(d.party,'Unknown')) AS category,
+                        'debt_payments' AS src, dp.id AS src_id,
+                        COALESCE(d.party,'—') AS party
+                 FROM debt_payments dp
+                 JOIN debts d ON d.id = dp.debt_id
+                 WHERE dp.book_id=? AND DATE(dp.paid_at) BETWEEN ? AND ?
+                 ORDER BY dp.paid_at DESC",
+                [$book['id'], $dateFrom, $dateTo]
+            );
+            foreach ($rows as $r) {
+                $entries[] = array_merge($r, ['href' => '/books/'.$book['id'].'/debts']);
+            }
+        } catch (\Throwable $e) {}
+
         // ── Sort all by date desc ─────────────────────────────────────────────
-        usort($entries, fn($a,$b) => strcmp($b['date'], $a['date']));
+        usort($entries, fn($a, $b) => strcmp($b['date'], $a['date']));
 
         // ── Apply type filter ─────────────────────────────────────────────────
         if ($typeFilter !== 'all') {
-            $entries = array_filter($entries, fn($e) => $e['direction'] === $typeFilter);
-            $entries = array_values($entries);
+            $entries = array_values(array_filter($entries, fn($e) => $e['direction'] === $typeFilter));
         }
 
-        // ── Totals ────────────────────────────────────────────────────────────
+        // ── Totals (before filter for summary cards) ──────────────────────────
         $totalIn  = array_sum(array_map(fn($e) => $e['direction']==='in'  ? (float)$e['amount'] : 0, $entries));
         $totalOut = array_sum(array_map(fn($e) => $e['direction']==='out' ? (float)$e['amount'] : 0, $entries));
 
@@ -200,7 +242,10 @@ class ReportsController
 
     private function getBookOrFail(string $id): array
     {
-        $book = Database::row('SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL AND type="business"', [$id, auth()['id']]);
+        $book = Database::row(
+            'SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL AND type="business"',
+            [$id, auth()['id']]
+        );
         if (!$book) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $book;
     }

@@ -43,7 +43,7 @@ ob_start();
 
 <!-- Filter tabs -->
 <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-    <?php foreach (['all'=>'All','unpaid'=>'Unpaid','partial'=>'Partial','paid'=>'Paid'] as $val=>$label): ?>
+    <?php foreach (['all'=>'All','unpaid'=>'Unpaid','partial'=>'Partial','paid'=>'Paid','cancelled'=>'Cancelled'] as $val=>$label): ?>
     <a href="?filter=<?= $val ?><?= $search ? '&q='.urlencode($search) : '' ?>"
        class="btn btn-sm <?= $filter===$val ? 'btn-primary' : 'btn-secondary' ?>">
         <?= $label ?>
@@ -75,7 +75,7 @@ ob_start();
     <div class="empty-state">
         <div class="empty-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
         <h3>No dues found</h3>
-        <p><?= $search ? 'Try a different search.' : 'Dues are created automatically when a sale invoice is marked unpaid.' ?></p>
+        <p><?= $search ? 'Try a different search.' : 'Dues are created automatically when a sale invoice is marked unpaid, or add one manually.' ?></p>
     </div>
 </div>
 <?php else: ?>
@@ -107,7 +107,6 @@ ob_start();
             [$badgeClass, $badgeLabel] = $statusMap[$due['status']] ?? ['badge-gray', ucfirst($due['status'])];
         ?>
         <tr>
-            <!-- Customer -->
             <td>
                 <div style="display:flex;align-items:center;gap:8px">
                     <?php if (!empty($due['customer_photo'])): ?>
@@ -126,27 +125,22 @@ ob_start();
                     </div>
                 </div>
             </td>
-
-            <!-- Title -->
             <td>
                 <div style="font-weight:500"><?= e($due['title']) ?></div>
                 <?php if (!empty($due['invoice_no'])): ?>
                 <div class="td-muted"><i class="fa-solid fa-file-invoice fa-xs"></i> <?= e($due['invoice_no']) ?></div>
                 <?php endif; ?>
+                <?php if (!empty($due['note'])): ?>
+                <div class="td-muted" style="font-size:11px;font-style:italic"><?= e($due['note']) ?></div>
+                <?php endif; ?>
             </td>
-
-            <!-- Amount -->
             <td style="font-weight:600"><?= format_money((float)$due['amount'], $sym) ?></td>
-
-            <!-- Paid -->
             <td>
                 <div style="color:var(--green);font-weight:600"><?= format_money((float)$due['paid_amount'], $sym) ?></div>
                 <div style="height:3px;background:var(--border);border-radius:99px;width:70px;margin-top:3px">
                     <div style="height:100%;border-radius:99px;width:<?= $pct ?>%;background:<?= $due['status']==='paid'?'var(--green)':'var(--amber)' ?>"></div>
                 </div>
             </td>
-
-            <!-- Remaining -->
             <td>
                 <?php if ($remaining > 0.001): ?>
                 <span style="color:var(--red);font-weight:700"><?= format_money($remaining, $sym) ?></span>
@@ -154,28 +148,21 @@ ob_start();
                 <span style="color:var(--green)"><i class="fa-solid fa-check"></i> Settled</span>
                 <?php endif; ?>
             </td>
-
-            <!-- Due date -->
             <td class="td-muted">
-                <?php if (!empty($due['due_date'])): ?>
-                    <?php
+                <?php if (!empty($due['due_date'])):
                     $dueDate = new DateTime($due['due_date']);
                     $today   = new DateTime('today');
                     $overdue = $dueDate < $today && !in_array($due['status'], ['paid','cancelled']);
-                    ?>
-                    <span <?= $overdue ? 'style="color:var(--red);font-weight:600"' : '' ?>>
-                        <?= format_date($due['due_date']) ?>
-                        <?php if ($overdue): ?>
-                        <br><small><?= (int)$today->diff($dueDate)->days ?> days overdue</small>
-                        <?php endif; ?>
-                    </span>
+                ?>
+                <span <?= $overdue ? 'style="color:var(--red);font-weight:600"' : '' ?>>
+                    <?= format_date($due['due_date']) ?>
+                    <?php if ($overdue): ?>
+                    <br><small><?= (int)$today->diff($dueDate)->days ?> days overdue</small>
+                    <?php endif; ?>
+                </span>
                 <?php else: ?>—<?php endif; ?>
             </td>
-
-            <!-- Status -->
             <td><span class="badge <?= $badgeClass ?>"><?= $badgeLabel ?></span></td>
-
-            <!-- Actions -->
             <td style="white-space:nowrap;text-align:right">
                 <?php if (!in_array($due['status'], ['paid','cancelled'])): ?>
                 <button class="btn btn-sm btn-secondary"
@@ -183,14 +170,25 @@ ob_start();
                         title="Record payment">
                     <i class="fa-solid fa-money-bill-wave" style="color:var(--green)"></i>
                 </button>
+                <button class="btn btn-sm btn-secondary" title="Edit"
+                        onclick="openDueEdit(<?= $due['id'] ?>,'<?= e(addslashes($due['title'])) ?>',<?= (float)$due['amount'] ?>,'<?= $due['due_date'] ?? '' ?>','<?= e(addslashes($due['note'] ?? '')) ?>')">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
                 <form method="POST" action="/books/<?= $book['id'] ?>/dues/<?= $due['id'] ?>/cancel"
-                      style="display:inline" data-confirm="Cancel this due?">
+                      style="display:inline" onsubmit="return confirm('Cancel this due?')">
                     <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
                     <button class="btn btn-sm btn-secondary" title="Cancel due">
-                        <i class="fa-solid fa-ban" style="color:var(--red)"></i>
+                        <i class="fa-solid fa-ban" style="color:var(--amber)"></i>
                     </button>
                 </form>
                 <?php endif; ?>
+                <form method="POST" action="/books/<?= $book['id'] ?>/dues/<?= $due['id'] ?>/delete"
+                      style="display:inline" onsubmit="return confirm('Permanently delete this due record?')">
+                    <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+                    <button class="btn btn-sm btn-secondary" title="Delete">
+                        <i class="fa-solid fa-trash" style="color:var(--red)"></i>
+                    </button>
+                </form>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -208,7 +206,7 @@ ob_start();
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <div class="form-grid" style="gap:12px">
                 <div class="form-group full">
-                    <label id="payModalLabel">Due title</label>
+                    <label id="payModalLabel" style="font-weight:700;color:var(--brand)">Due title</label>
                 </div>
                 <div class="form-group">
                     <label>Amount *</label>
@@ -238,6 +236,39 @@ ob_start();
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-check"></i> Save Payment
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ══ EDIT DUE MODAL ══ -->
+<div class="modal-backdrop" id="editDueModal">
+    <div class="modal">
+        <div class="modal-title"><i class="fa-solid fa-pen" style="color:var(--brand)"></i> Edit Due</div>
+        <form id="editDueForm" method="POST">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group full">
+                    <label>Title *</label>
+                    <input type="text" name="title" id="editDueTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" id="editDueAmount" min="0.01" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" name="due_date" id="editDueDueDate">
+                </div>
+                <div class="form-group full">
+                    <label>Note (optional)</label>
+                    <textarea name="note" id="editDueNote" style="min-height:50px"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
             </div>
         </form>
     </div>
@@ -285,13 +316,14 @@ ob_start();
 </div>
 
 <style>
-.autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 6px 20px rgba(0,0,0,.1);max-height:180px;overflow-y:auto;z-index:300}
+.autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 6px 20px rgba(0,0,0,.1);max-height:180px;overflow-y:auto;z-index:500}
 .autocomplete-item{padding:8px 12px;cursor:pointer;font-size:13px}
 .autocomplete-item:hover{background:var(--bg)}
 .autocomplete-item small{color:var(--text-muted);display:block;font-size:11px}
 .stat-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
 .amber{color:var(--amber)!important}
-.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-amber{background:var(--amber-bg,#fff8e1);color:var(--amber,#f59e0b)}
+.badge-gray{background:#f3f4f6;color:#6b7280}
 </style>
 
 <script>
@@ -299,45 +331,59 @@ ob_start();
 function openPayModal(dueId, title, remaining, sym) {
     document.getElementById('payModalForm').action = '/books/<?= $book['id'] ?>/dues/' + dueId + '/pay';
     document.getElementById('payModalLabel').textContent = title;
-    document.getElementById('payAmount').max = remaining;
-    document.getElementById('payAmount').value = '';
-    document.getElementById('payRemaining').textContent = 'Outstanding: ' + sym + parseFloat(remaining).toFixed(2);
+    document.getElementById('payAmount').value = remaining.toFixed(2);
+    document.getElementById('payAmount').max   = remaining;
+    document.getElementById('payRemaining').textContent = 'Remaining: ' + sym + remaining.toFixed(2);
     document.getElementById('payModal').classList.add('open');
-    setTimeout(() => document.getElementById('payAmount').focus(), 100);
 }
 
-// ── Customer search for Add Due modal ──────────────────────────────────────
-let _dueTimer;
-function searchDueCustomer(q) {
-    clearTimeout(_dueTimer);
-    const dd = document.getElementById('dueCustomerDropdown');
-    if (q.trim().length < 2) { dd.style.display='none'; return; }
-    _dueTimer = setTimeout(() => {
-        fetch('/books/<?= $book['id'] ?>/customers/search?q=' + encodeURIComponent(q))
-            .then(r => r.json())
-            .then(data => {
-                if (!data.length) { dd.style.display='none'; return; }
-                dd.innerHTML = data.map(c =>
-                    `<div class="autocomplete-item" onclick="selectDueCustomer(${c.id},'${escStr(c.name)}','${escStr(c.phone||'')}')">
-                        ${escHtml(c.name)}<small>${escHtml(c.phone||'')}</small>
-                    </div>`
-                ).join('');
-                dd.style.display = 'block';
-            })
-            .catch(() => { dd.style.display='none'; });
-    }, 250);
+// ── Edit due modal ─────────────────────────────────────────────────────────
+function openDueEdit(id, title, amount, dueDate, note) {
+    document.getElementById('editDueForm').action = '/books/<?= $book['id'] ?>/dues/' + id + '/edit';
+    document.getElementById('editDueTitle').value   = title;
+    document.getElementById('editDueAmount').value  = amount;
+    document.getElementById('editDueDueDate').value = dueDate;
+    document.getElementById('editDueNote').value    = note;
+    document.getElementById('editDueModal').classList.add('open');
 }
-function selectDueCustomer(id, name, phone) {
-    document.getElementById('dueCustomerId').value = id;
-    document.getElementById('dueCustomerSearch').value = name + (phone ? ' · '+phone : '');
+
+// ── Customer autocomplete ──────────────────────────────────────────────────
+<?php
+$customersJson = json_encode(array_map(fn($c) => [
+    'id'    => $c['id'],
+    'name'  => $c['name'],
+    'phone' => $c['phone'] ?? '',
+], $customers), JSON_UNESCAPED_UNICODE);
+?>
+const DUE_CUSTOMERS = <?= $customersJson ?>;
+
+function searchDueCustomer(q) {
+    const dd = document.getElementById('dueCustomerDropdown');
+    if (!q.trim()) { dd.style.display='none'; return; }
+    const matches = DUE_CUSTOMERS.filter(c =>
+        c.name.toLowerCase().includes(q.toLowerCase()) ||
+        (c.phone && c.phone.includes(q))
+    ).slice(0, 8);
+    if (!matches.length) { dd.style.display='none'; return; }
+    dd.innerHTML = matches.map(c =>
+        `<div class="autocomplete-item" onclick="selectDueCustomer(${c.id},'${c.name.replace(/'/g,"\\'")}')">
+            ${c.name}<small>${c.phone || ''}</small>
+        </div>`
+    ).join('');
+    dd.style.display='block';
+}
+
+function selectDueCustomer(id, name) {
+    document.getElementById('dueCustomerSearch').value = name;
+    document.getElementById('dueCustomerId').value     = id;
     document.getElementById('dueCustomerDropdown').style.display = 'none';
 }
-document.addEventListener('click', e => {
-    if (!e.target.closest('#dueCustomerSearch') && !e.target.closest('#dueCustomerDropdown'))
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#dueCustomerSearch') && !e.target.closest('#dueCustomerDropdown')) {
         document.getElementById('dueCustomerDropdown').style.display = 'none';
+    }
 });
-function escHtml(s) { const d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
-function escStr(s)  { return String(s).replace(/'/g,"\\'"); }
 </script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

@@ -10,9 +10,7 @@ class FundsController
         $book = $this->getBookOrFail($params['id']);
 
         $transactions = Database::query(
-            "SELECT f.*,
-                    f.fund_date AS date,
-                    f.title     AS source
+            "SELECT f.*, f.fund_date AS date, f.title AS source
              FROM funds f
              WHERE f.book_id=?
              ORDER BY f.fund_date DESC, f.id DESC",
@@ -59,18 +57,50 @@ class FundsController
         redirect('/books/'.$book['id'].'/funds', ['success' => $label]);
     }
 
+    public function update(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book = $this->getBookOrFail($params['id']);
+        $fund = $this->getFundOrFail($params['fund_id'], $book['id']);
+
+        $typeRaw = $_POST['type'] ?? $fund['type'];
+        $type    = ($typeRaw === 'withdraw' || $typeRaw === 'out') ? 'out' : 'in';
+        $amount  = (float)($_POST['amount'] ?? 0);
+        $source  = trim($_POST['source'] ?? '');
+        $date    = $_POST['date'] ?? $fund['fund_date'];
+        $note    = trim($_POST['note'] ?? '');
+
+        if ($amount <= 0) {
+            redirect('/books/'.$book['id'].'/funds', ['error' => 'Amount must be greater than zero.']);
+        }
+        if (!$source) {
+            redirect('/books/'.$book['id'].'/funds', ['error' => 'Source / reason is required.']);
+        }
+
+        Database::run(
+            'UPDATE funds SET type=?, title=?, amount=?, fund_date=?, note=?, updated_at=? WHERE id=? AND book_id=?',
+            [$type, $source, $amount, $date, $note ?: null, now(), $fund['id'], $book['id']]
+        );
+
+        redirect('/books/'.$book['id'].'/funds', ['success' => 'Transaction updated.']);
+    }
+
     public function delete(array $params): void
     {
         if (guest()) redirect('/login');
         csrf_verify();
         $book = $this->getBookOrFail($params['id']);
 
-        Database::run(
-            'DELETE FROM funds WHERE id=? AND book_id=?',
-            [$params['fund_id'], $book['id']]
-        );
-
+        Database::run('DELETE FROM funds WHERE id=? AND book_id=?', [$params['fund_id'], $book['id']]);
         redirect('/books/'.$book['id'].'/funds', ['success' => 'Transaction deleted.']);
+    }
+
+    private function getFundOrFail(string $fundId, int $bookId): array
+    {
+        $fund = Database::row('SELECT * FROM funds WHERE id=? AND book_id=?', [$fundId, $bookId]);
+        if (!$fund) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
+        return $fund;
     }
 
     private function getBookOrFail(string $id): array

@@ -31,6 +31,8 @@ class ExpensesController
 
         $expenses = Database::query(
             "SELECT e.*,
+                    e.expense_date AS date,
+                    e.attachment   AS receipt,
                     ec.name AS category_name,
                     ec.icon AS category_icon
              FROM expenses e
@@ -77,6 +79,34 @@ class ExpensesController
         redirect('/books/'.$book['id'].'/expenses', ['success' => 'Expense recorded.']);
     }
 
+    public function update(array $params): void
+    {
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book    = $this->getBookOrFail($params['id']);
+        $expense = $this->getExpenseOrFail($params['expense_id'], $book['id']);
+
+        $title  = trim($_POST['title']  ?? '');
+        $amount = (float)($_POST['amount'] ?? 0);
+        $date   = $_POST['date'] ?? $expense['expense_date'];
+        $catId  = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+        $paidTo = trim($_POST['paid_to'] ?? '');
+        $note   = trim($_POST['note']   ?? '');
+
+        if (!$title || $amount <= 0) {
+            redirect('/books/'.$book['id'].'/expenses', ['error' => 'Title and amount are required.']);
+        }
+
+        Database::run(
+            'UPDATE expenses SET category_id=?, title=?, amount=?, expense_date=?, paid_to=?, note=?, updated_at=?
+             WHERE id=? AND book_id=?',
+            [$catId, $title, $amount, $date, $paidTo ?: null, $note ?: null, now(),
+             $expense['id'], $book['id']]
+        );
+
+        redirect('/books/'.$book['id'].'/expenses', ['success' => 'Expense updated.']);
+    }
+
     public function delete(array $params): void
     {
         if (guest()) redirect('/login');
@@ -99,6 +129,18 @@ class ExpensesController
 
         $name = trim($_POST['name'] ?? '');
         $icon = trim($_POST['icon'] ?? 'fa-tag');
+
+        // Only allow known FA icon names (prevent arbitrary injection)
+        $allowedIcons = [
+            'fa-tag','fa-bolt','fa-building','fa-users','fa-truck','fa-wrench',
+            'fa-bullhorn','fa-ellipsis','fa-utensils','fa-laptop','fa-phone',
+            'fa-car','fa-home','fa-heart','fa-shield','fa-graduation-cap',
+            'fa-globe','fa-box','fa-tools','fa-paint-brush','fa-seedling',
+            'fa-leaf','fa-water','fa-fire','fa-star','fa-coffee','fa-tshirt',
+        ];
+        if (!in_array($icon, $allowedIcons, true)) {
+            $icon = 'fa-tag';
+        }
 
         if (!$name) {
             redirect('/books/'.$book['id'].'/expenses', ['error' => 'Category name is required.']);
@@ -128,7 +170,7 @@ class ExpensesController
             ['Transport',     'fa-truck'],
             ['Maintenance',   'fa-wrench'],
             ['Marketing',     'fa-bullhorn'],
-            ['Miscellaneous', 'fa-ellipsis-h'],
+            ['Miscellaneous', 'fa-tag'],
         ];
         foreach ($defaults as [$name, $icon]) {
             $exists = Database::row(
@@ -142,6 +184,13 @@ class ExpensesController
                 );
             }
         }
+    }
+
+    private function getExpenseOrFail(string $expenseId, int $bookId): array
+    {
+        $exp = Database::row('SELECT * FROM expenses WHERE id=? AND book_id=?', [$expenseId, $bookId]);
+        if (!$exp) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
+        return $exp;
     }
 
     private function getBookOrFail(string $id): array
