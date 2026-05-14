@@ -26,6 +26,8 @@ services:
       - SMTP_PASS=${SMTP_PASS}
       - APP_KEY=${APP_KEY}
       - SESSION_NAME=${SESSION_NAME}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${GENERIC_TIMEZONE}
     depends_on:
       db:
         condition: service_healthy
