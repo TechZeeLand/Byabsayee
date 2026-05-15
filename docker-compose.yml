@@ -95,13 +95,19 @@ services:
     networks:
       - byabsayee
     environment:
-      - DB_HOST=db
+      # 1. Change DB_HOST to point directly to the host machine gateway
+      - DB_HOST=host.docker.internal
+      # 2. We use the external port (3011) you exposed on the host machine
+      - DB_PORT=3011
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - DB_NAME=${DB_NAME}
       - TZ=Asia/Dhaka
     volumes:
       - /Sites/byabsayee/backups:/backup
+    # 3. This tells the container exactly what 'host.docker.internal' means
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   byabsayee:
