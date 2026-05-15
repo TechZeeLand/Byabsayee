@@ -71,8 +71,7 @@ body {
     border-radius: 4px;
 }
 
-/* ── Coupon grid: 3 per row, 7 per page ── */
-.coupon-grid {
+    .coupon-grid {
     display: grid;
     grid-template-columns: repeat(3, 69mm);
     gap: 0;
@@ -82,8 +81,8 @@ body {
 .coupon {
     width: 69mm;
     height: 41mm;
-    border: 1.5px solid var(--theme);
-    border-radius: 3px;
+    border: 10px solid var(--theme);
+    border-radius: 5px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -92,17 +91,7 @@ body {
     page-break-inside: avoid;
 }
 
-/* colour accent stripe on left */
-.coupon::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4mm;
-    background: var(--theme);
-}
-
 .coupon-inner {
-    padding: 2mm 2.5mm 2mm 6mm;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -112,39 +101,23 @@ body {
 .coupon-top {
     display: flex;
     align-items: center;
-    gap: 1.5mm;
-    height: 11mm;
+    height: 50px;
+    background: red;
 }
-.coupon-logo {
-    width: 9mm;
-    height: 9mm;
-    object-fit: contain;
-    flex-shrink: 0;
+.coupon-top img {
+    height: 30px;
+    width: auto;
+    margin: 0px 5px 5px 5px;
 }
-.coupon-logo-placeholder {
-    width: 9mm;
-    height: 9mm;
-    background: var(--theme);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 5px;
-    font-weight: 900;
-    flex-shrink: 0;
-    text-align: center;
-    overflow: hidden;
-    line-height: 1.1;
-}
-.coupon-biz-name {
+
+.coupon-top p {
     flex: 1;
-    font-size: 6pt;
-    font-weight: 800;
-    color: var(--theme);
-    line-height: 1.2;
+    font-size: 14px;
+    font-weight: bolder;
+    color: #ffffff;
     overflow: hidden;
     word-break: break-word;
+    text-align: center;
 }
 .coupon-qr {
     width: 11mm;
@@ -159,21 +132,20 @@ body {
 
 /* ── Coupon title ── */
 .coupon-title {
-    font-size: 8pt;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: bolder;
     color: var(--theme);
     text-align: center;
     letter-spacing: 0.5px;
     line-height: 1;
-    margin: 1mm 0 0.8mm;
+    margin: 8px 0px 0px 0px;
 }
 
 /* ── Divider ── */
 .coupon-divider {
     border: none;
-    border-top: 1px dashed var(--theme);
-    opacity: 0.5;
-    margin: 0 0 1mm;
+    border-top: 2px dashed var(--theme);
+    margin: 10px;
 }
 
 /* ── Code ── */
@@ -181,45 +153,48 @@ body {
     font-size: 10pt;
     font-weight: 900;
     letter-spacing: 2px;
-    color: #111;
+    color: #fff;
     text-align: center;
+    align-items: center;
     line-height: 1;
+    display: flex;
+    margin: 0 auto;
+}
+
+.code-bg{
+    background: var(--theme);
+    height: 20px;
+    width: max-content;
+    padding: 5px 10px 1px 0px;
+    border-radius: 10px;
 }
 
 /* ── Expiry ── */
 .coupon-expiry {
-    font-size: 5.5pt;
+    font-size: 6px;
     color: #555;
     text-align: center;
-    margin-top: 0.8mm;
+    margin-top: 5px;
+    margin-bottom: -2px;
     line-height: 1;
 }
 
 /* ── Footer ── */
 .coupon-footer {
-    margin-top: auto;
+    margin-right: 10px;
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 1mm;
-    padding-top: 1mm;
+    gap: 5px;
 }
-.coupon-footer-text {
-    font-size: 4.5pt;
-    color: #888;
-    font-style: italic;
+.coupon-footer p {
+    font-size: 8px;
+    color: #000000;
 }
-.byabsayee-logo-small {
-    height: 5mm;
+.coupon-footer img {
+    height: 15px;
     width: auto;
-    opacity: 0.7;
-}
-.byabsayee-wordmark {
-    font-size: 5pt;
-    font-weight: 900;
-    color: var(--theme);
-    opacity: 0.8;
-    letter-spacing: 0.3px;
 }
 
 /* ── Print ── */
@@ -287,17 +262,17 @@ function buildCouponHtml(c, idx) {
     <div class="coupon">
         <div class="coupon-inner">
             <div class="coupon-top">
-                ${logoHtml}
-                <div class="coupon-biz-name">${esc(BIZNAME)}</div>
+                <img src="ByabsayeeLogo.png" alt="Logo">
+                <p>${esc(BIZNAME)}</p>
                 <div class="coupon-qr" id="qr_${idx}_${c.id}"></div>
             </div>
-            <div class="coupon-title">!!! Coupon !!!</div>
+            <p class="coupon-title">!!! Coupon !!!</p>
             <hr class="coupon-divider">
-            <div class="coupon-code">Code:&nbsp; ${esc(c.code)}</div>
-            <div class="coupon-expiry">${esc(formatExpiry(c.expires_at))}</div>
+            <p class="coupon-code">Code: <p class="code-bg">&nbsp; ${esc(c.code)}</p></p>
+            <p class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</p>
             <div class="coupon-footer">
-                <span class="coupon-footer-text">Generated Using: Byabsayee</span>
-                <span class="byabsayee-wordmark">✦ by</span>
+                <p>Generated Using: Byabsayee</p>
+                <img src="ByabsayeeLogo.png" alt="">
             </div>
         </div>
     </div>`;
