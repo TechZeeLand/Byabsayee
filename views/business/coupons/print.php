@@ -123,7 +123,7 @@ body {
     width: 11mm;
     height: 11mm;
     flex-shrink: 0;
-    color: #000;
+    border: 2px solid #fff;
 }
 .coupon-qr canvas,
 .coupon-qr img {
@@ -263,7 +263,7 @@ function buildCouponHtml(c, idx) {
     <div class="coupon">
         <div class="coupon-inner">
             <div class="coupon-top">
-                <img src="ByabsayeeLogo.png" alt="Logo">
+                <img src="${logoHtml}" alt="Logo">
                 <p>${esc(BIZNAME)}</p>
                 <div class="coupon-qr" id="qr_${idx}_${c.id}"></div>
             </div>
