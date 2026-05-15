@@ -102,7 +102,7 @@ body {
     display: flex;
     align-items: center;
     height: 50px;
-    background: red;
+    background: var(--theme);
 }
 .coupon-top img {
     height: 30px;
@@ -123,6 +123,7 @@ body {
     width: 11mm;
     height: 11mm;
     flex-shrink: 0;
+    color: #000;
 }
 .coupon-qr canvas,
 .coupon-qr img {
@@ -145,7 +146,7 @@ body {
 .coupon-divider {
     border: none;
     border-top: 2px dashed var(--theme);
-    margin: 10px;
+    margin: 10px 10px 0px 10px;
 }
 
 /* ── Code ── */
@@ -266,10 +267,10 @@ function buildCouponHtml(c, idx) {
                 <p>${esc(BIZNAME)}</p>
                 <div class="coupon-qr" id="qr_${idx}_${c.id}"></div>
             </div>
-            <p class="coupon-title">!!! Coupon !!!</p>
+            <div class="coupon-title">!!! Coupon !!!</div>
             <hr class="coupon-divider">
-            <p class="coupon-code">Code: <p class="code-bg">&nbsp; ${esc(c.code)}</p></p>
-            <p class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</p>
+            <div class="coupon-code">Code: <div class="code-bg">&nbsp; ${esc(c.code)}</div></div>
+            <div class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</div>
             <div class="coupon-footer">
                 <p>Generated Using: Byabsayee</p>
                 <img src="ByabsayeeLogo.png" alt="">
