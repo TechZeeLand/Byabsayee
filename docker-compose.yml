@@ -93,10 +93,10 @@ services:
     networks:
       - byabsayee
     environment:
-      - MARIADB_HOST=db
-      - MARIADB_USER=root
-      - MARIADB_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
       - TZ=Asia/Dhaka
     volumes:
       - /Sites/byabsayee/backups:/backup
