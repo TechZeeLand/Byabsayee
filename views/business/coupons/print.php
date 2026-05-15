@@ -122,12 +122,12 @@ body {
     width: 11mm;
     height: 11mm;
     flex-shrink: 0;
-    border: 3px solid #fff;
 }
 .coupon-qr canvas,
 .coupon-qr img {
     width: 11mm !important;
     height: 11mm !important;
+    border: 3px solid #fff;
 }
 
 /* ── Coupon title ── */
@@ -145,7 +145,7 @@ body {
 .coupon-divider {
     border: none;
     border-top: 2px dashed var(--theme);
-    margin: 8px 10px 5px 10px;
+    margin: 6px 10px 6px 10px;
 }
 
 /* ── Code ── */
@@ -168,6 +168,8 @@ body {
     width: max-content;
     padding: 5px 10px 1px 0px;
     border-radius: 10px;
+    margin-left: 2px;
+    align-items: center;
 }
 
 /* ── Expiry ── */
