@@ -13,9 +13,6 @@ ob_start();
         <p>Create discount codes for customers</p>
     </div>
     <div style="display:flex;gap:8px">
-        <a href="/books/<?= $book['id'] ?>/coupons/print" class="btn btn-secondary" target="_blank">
-            <i class="fa-solid fa-print"></i> Print Coupons
-        </a>
         <button class="btn btn-primary" data-modal="addCouponModal">
             <i class="fa-solid fa-plus"></i> New Coupon
         </button>

@@ -88,6 +88,7 @@ body {
     background: #fff;
     position: relative;
     page-break-inside: avoid;
+    margin: 2px 1px;
 }
 
 .coupon-inner {
@@ -128,7 +129,7 @@ body {
 .coupon-qr img {
     width: 11mm !important;
     height: 11mm !important;
-    border: 3px solid #fff;
+    border: 2px solid #fff;
 }
 
 /* ── Coupon title ── */
@@ -167,7 +168,7 @@ body {
     color: #fff;
     height: 20px;
     width: max-content;
-    padding: 5px 10px 1px 0px;
+    padding: 5px 10px 5px 0px;
     border-radius: 10px;
     margin-left: 2px;
     align-items: center;
@@ -217,14 +218,14 @@ body {
 <body>
 
 <div class="controls">
-    <strong>🎟️ Print Coupons</strong>
+    <strong>Print Coupons</strong>
 
     <label class="ctrl-label">
         Copies per coupon:
         <input type="number" id="copiesInput" class="ctrl-input" value="1" min="1" max="21">
     </label>
 
-    <button class="btn-print" onclick="doPrint()">🖨️ Print</button>
+    <button class="btn-print" onclick="doPrint()"><i class="fa-solid fa-print"> Print</button>
     <a href="/books/<?= $book['id'] ?>/coupons" class="btn-back">← Back</a>
 </div>
 
