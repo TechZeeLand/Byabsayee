@@ -80,7 +80,7 @@ body {
 .coupon {
     width: 69mm;
     height: 41mm;
-    border: 10px solid var(--theme);
+    border: 5px solid var(--theme);
     border-radius: 5px;
     overflow: hidden;
     display: flex;
@@ -102,6 +102,7 @@ body {
     align-items: center;
     height: 50px;
     background: var(--theme);
+    padding: 0px 10px 5px 10px;
 }
 .coupon-top img {
     height: 30px;

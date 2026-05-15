@@ -159,8 +159,7 @@ class CouponController
         $details    = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
         $themeColor = $book['theme_color'] ?? '#1a6b4a';
         $bizName    = $details['business_name'] ?? $book['name'];
-        $logoPath   = $details['logo']          ?? null;
-        $logoUrl    = $logoPath ? '/uploads/logos/'.basename($logoPath) : null;
+        $logoUrl = !empty($book['logo']) ? '/uploads/'.$book['logo'] : null;
 
         require BASE_PATH . '/views/business/coupons/print.php';
     }
