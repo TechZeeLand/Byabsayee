@@ -145,7 +145,7 @@ body {
 .coupon-divider {
     border: none;
     border-top: 2px dashed var(--theme);
-    margin: 10px 10px 5px 10px;
+    margin: 8px 10px 5px 10px;
 }
 
 /* ── Code ── */
@@ -153,7 +153,7 @@ body {
     font-size: 10pt;
     font-weight: 900;
     letter-spacing: 2px;
-    color: #fff;
+    color: #000;
     text-align: center;
     align-items: center;
     line-height: 1;
@@ -163,6 +163,7 @@ body {
 
 .code-bg{
     background: var(--theme);
+    color: #fff;
     height: 20px;
     width: max-content;
     padding: 5px 10px 1px 0px;
@@ -175,7 +176,6 @@ body {
     color: #555;
     text-align: center;
     margin-top: 5px;
-    margin-bottom: -2px;
     line-height: 1;
 }
 
@@ -272,7 +272,7 @@ function buildCouponHtml(c, idx) {
             <div class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</div>
             <div class="coupon-footer">
                 <p>Generated Using: Byabsayee</p>
-                <img src="ByabsayeeLogo.png" alt="">
+                <img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>" alt="">
             </div>
         </div>
     </div>`;
@@ -308,6 +308,7 @@ function render() {
                 width: 42, height: 42,
                 colorDark: THEME,
                 colorLight: '#ffffff',
+                border: 2px solid '#fff',
                 correctLevel: QRCode.CorrectLevel.M
             });
         }
