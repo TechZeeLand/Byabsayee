@@ -272,7 +272,7 @@ function buildCouponHtml(c, idx) {
             <div class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</div>
             <div class="coupon-footer">
                 <p>Generated Using: Byabsayee</p>
-                <img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>" alt="">
+                <img src="assets/images/ByabsayeeLogo.png" alt="">
             </div>
         </div>
     </div>`;
