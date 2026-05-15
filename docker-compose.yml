@@ -83,7 +83,7 @@ services:
     networks:
       - byabsayee
 
-backup:
+  backup:
     image: alpine:latest
     container_name: byabsayee_backup
     restart: unless-stopped
