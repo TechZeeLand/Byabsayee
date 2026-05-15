@@ -94,8 +94,8 @@ services:
       - byabsayee
     environment:
       - MARIADB_HOST=db
-      - MARIADB_USER=${DB_USER}
-      - MARIADB_PASSWORD=${DB_PASS}
+      - MARIADB_USER=root
+      - MARIADB_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - DB_NAME=${DB_NAME}
       - TZ=Asia/Dhaka
     volumes:
