@@ -84,7 +84,9 @@ services:
       - byabsayee
 
   backup:
-    image: alpine:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     container_name: byabsayee_backup
     restart: unless-stopped
     depends_on:
@@ -100,36 +102,6 @@ services:
       - TZ=Asia/Dhaka
     volumes:
       - /Sites/byabsayee/backups:/backup
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        apk add --no-cache mariadb-client tzdata
-
-        cat << 'EOF' > /usr/local/bin/run-backup.sh
-
-        DB_CHECK=$(mariadb-admin ping -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" 2>&1)
-        
-        if echo "$DB_CHECK" | grep -q "mysqld is alive"; then
-            # Connection succeeded -> Run the dump
-            mariadb-dump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" | gzip > /backup/"$DB_NAME"-$(date +%Y-%m-%d_%H-%M).sql.gz
-            find /backup -type f -name "$DB_NAME-*.sql.gz" -mtime +30 -delete
-            echo "Backup successful: $(date)"
-        else
-            # Connection failed -> Output the exact system error
-            echo "==================================================" >&2
-            echo "DATABASE CONNECTION ERROR:" >&2
-            echo "$DB_CHECK" >&2
-            echo "==================================================" >&2
-        fi
-        EOF
-
-        chmod +x /usr/local/bin/run-backup.sh
-
-        echo "Running initial test backup..."
-        /usr/local/bin/run-backup.sh
-
-        echo "0 2 * * * /usr/local/bin/run-backup.sh" > /etc/crontabs/root
-        exec crond -f -l 2
 
 networks:
   byabsayee:
