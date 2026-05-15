@@ -272,7 +272,7 @@ function buildCouponHtml(c, idx) {
             <div class="coupon-expiry">Expiration: ${esc(formatExpiry(c.expires_at))}</div>
             <div class="coupon-footer">
                 <p>Generated Using: Byabsayee</p>
-                <img src="assets/images/ByabsayeeLogo.png" alt="">
+                <img src="<?= asset('assets/images/ByabsayeeLogo.png') ?>" alt="">
             </div>
         </div>
     </div>`;
@@ -308,7 +308,6 @@ function render() {
                 width: 42, height: 42,
                 colorDark: THEME,
                 colorLight: '#ffffff',
-                border: 2px solid '#fff',
                 correctLevel: QRCode.CorrectLevel.M
             });
         }
