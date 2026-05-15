@@ -379,3 +379,275 @@ VALUES (
     'active',
     NOW()
 );
+
+-- =============================================================================
+-- EXTENDED TABLES (added as part of the migration fix)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS `book_currencies` (
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`    INT UNSIGNED NOT NULL,
+    `code`       VARCHAR(10)  NOT NULL DEFAULT 'BDT',
+    `symbol`     VARCHAR(5)   NOT NULL DEFAULT '৳',
+    `is_default` TINYINT(1)   NOT NULL DEFAULT 1,
+    `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `invoice_method_options` (
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`    INT UNSIGNED NOT NULL,
+    `type`       ENUM('delivery','payment') NOT NULL,
+    `label`      VARCHAR(120) NOT NULL,
+    `sort_order` INT UNSIGNED NOT NULL DEFAULT 0,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `report_entries` (
+    `id`           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`      INT UNSIGNED NOT NULL,
+    `type`         ENUM('in','out') NOT NULL,
+    `category`     VARCHAR(60)  NOT NULL,
+    `amount`       DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `description`  VARCHAR(255) NULL,
+    `source_table` VARCHAR(60)  NULL,
+    `source_id`    INT UNSIGNED NULL,
+    `date`         DATE NOT NULL,
+    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `payments` (
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `invoice_id` INT UNSIGNED NOT NULL,
+    `amount`     DECIMAL(15,2) NOT NULL,
+    `method`     VARCHAR(60)   NOT NULL DEFAULT 'cash',
+    `date`       DATE NOT NULL,
+    `note`       TEXT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `invoice_attachments` (
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `invoice_id` INT UNSIGNED NOT NULL,
+    `filename`   VARCHAR(255) NOT NULL,
+    `path`       VARCHAR(500) NOT NULL,
+    `size`       INT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `product_batches` (
+    `id`            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `product_id`    INT UNSIGNED NOT NULL,
+    `book_id`       INT UNSIGNED NOT NULL,
+    `barcode`       VARCHAR(60) NULL,
+    `buy_price`     DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `sell_price`    DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `initial_qty`   DECIMAL(15,3) NOT NULL DEFAULT 0.000,
+    `remaining_qty` DECIMAL(15,3) NOT NULL DEFAULT 0.000,
+    `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `funds` (
+    `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`    INT UNSIGNED NOT NULL,
+    `type`       ENUM('in','out') NOT NULL DEFAULT 'in',
+    `title`      VARCHAR(255) NOT NULL,
+    `amount`     DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `fund_date`  DATE NOT NULL,
+    `note`       TEXT NULL,
+    `created_by` INT UNSIGNED NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `expense_categories` (
+    `id`        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`   INT UNSIGNED NOT NULL,
+    `name`      VARCHAR(120) NOT NULL,
+    `icon`      VARCHAR(60)  NOT NULL DEFAULT 'fa-tag',
+    `is_active` TINYINT(1)   NOT NULL DEFAULT 1,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `expenses` (
+    `id`           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`      INT UNSIGNED NOT NULL,
+    `category_id`  INT UNSIGNED NULL DEFAULT NULL,
+    `title`        VARCHAR(255) NOT NULL,
+    `amount`       DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `expense_date` DATE NOT NULL,
+    `paid_to`      VARCHAR(120) NULL,
+    `note`         TEXT NULL,
+    `attachment`   VARCHAR(255) NULL,
+    `created_by`   INT UNSIGNED NULL,
+    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`)     REFERENCES `books`(`id`)             ON DELETE CASCADE,
+    FOREIGN KEY (`category_id`) REFERENCES `expense_categories`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `dues` (
+    `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`     INT UNSIGNED NOT NULL,
+    `customer_id` INT UNSIGNED NULL DEFAULT NULL,
+    `invoice_id`  INT UNSIGNED NULL DEFAULT NULL,
+    `title`       VARCHAR(255) NOT NULL,
+    `amount`      DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `paid_amount` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `due_date`    DATE NULL,
+    `note`        TEXT NULL,
+    `status`      ENUM('unpaid','partial','paid','cancelled') NOT NULL DEFAULT 'unpaid',
+    `created_by`  INT UNSIGNED NULL,
+    `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`)     REFERENCES `books`(`id`)     ON DELETE CASCADE,
+    FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`invoice_id`)  REFERENCES `invoices`(`id`)  ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `due_payments` (
+    `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `due_id`         INT UNSIGNED NOT NULL,
+    `book_id`        INT UNSIGNED NOT NULL,
+    `amount`         DECIMAL(15,2) NOT NULL,
+    `payment_method` VARCHAR(60) NOT NULL DEFAULT 'cash',
+    `note`           TEXT NULL,
+    `paid_by`        INT UNSIGNED NULL,
+    `paid_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`due_id`) REFERENCES `dues`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `debts` (
+    `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`     INT UNSIGNED NOT NULL,
+    `supplier_id` INT UNSIGNED NULL DEFAULT NULL,
+    `invoice_id`  INT UNSIGNED NULL DEFAULT NULL,
+    `title`       VARCHAR(255) NOT NULL,
+    `party`       VARCHAR(120) NULL,
+    `amount`      DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `paid_amount` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `due_date`    DATE NULL,
+    `note`        TEXT NULL,
+    `status`      ENUM('unpaid','partial','paid','cancelled') NOT NULL DEFAULT 'unpaid',
+    `created_by`  INT UNSIGNED NULL,
+    `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`)     REFERENCES `books`(`id`)     ON DELETE CASCADE,
+    FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`invoice_id`)  REFERENCES `invoices`(`id`)  ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `debt_payments` (
+    `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `debt_id`        INT UNSIGNED NOT NULL,
+    `book_id`        INT UNSIGNED NOT NULL,
+    `amount`         DECIMAL(15,2) NOT NULL,
+    `payment_method` VARCHAR(60) NOT NULL DEFAULT 'cash',
+    `note`           TEXT NULL,
+    `paid_by`        INT UNSIGNED NULL,
+    `paid_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`debt_id`) REFERENCES `debts`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `coupons` (
+    `id`             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`        INT UNSIGNED NOT NULL,
+    `name`           VARCHAR(120) NOT NULL,
+    `code`           VARCHAR(30)  NOT NULL,
+    `discount_type`  ENUM('fixed','percent') NOT NULL DEFAULT 'fixed',
+    `discount_value` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `note`           TEXT NULL,
+    `is_active`      TINYINT(1)   NOT NULL DEFAULT 1,
+    `created_by`     INT UNSIGNED NULL,
+    `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`book_id`) REFERENCES `books`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uq_book_code` (`book_id`, `code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Extended columns for invoices
+ALTER TABLE `invoices`
+    ADD COLUMN IF NOT EXISTS `points_discount`  DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `discount`,
+    ADD COLUMN IF NOT EXISTS `delivery_charge`  DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `points_discount`,
+    ADD COLUMN IF NOT EXISTS `handling_charge`  DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `delivery_charge`,
+    ADD COLUMN IF NOT EXISTS `delivery_type`    VARCHAR(30)   NULL DEFAULT 'own'    AFTER `handling_charge`,
+    ADD COLUMN IF NOT EXISTS `rounding`         DECIMAL(10,4) NOT NULL DEFAULT 0    AFTER `delivery_type`,
+    ADD COLUMN IF NOT EXISTS `note_customer`    TEXT NULL                           AFTER `notes`,
+    ADD COLUMN IF NOT EXISTS `note_seller`      TEXT NULL                           AFTER `note_customer`,
+    ADD COLUMN IF NOT EXISTS `delivery_method`  VARCHAR(120) NULL                   AFTER `note_seller`,
+    ADD COLUMN IF NOT EXISTS `payment_method`   VARCHAR(120) NULL                   AFTER `delivery_method`,
+    ADD COLUMN IF NOT EXISTS `theme_color`      VARCHAR(7)   NULL DEFAULT '#1a6b4a' AFTER `payment_method`,
+    ADD COLUMN IF NOT EXISTS `currency_symbol`  VARCHAR(5)   NOT NULL DEFAULT '৳'   AFTER `theme_color`,
+    ADD COLUMN IF NOT EXISTS `currency_code`    VARCHAR(10)  NOT NULL DEFAULT 'BDT' AFTER `currency_symbol`,
+    ADD COLUMN IF NOT EXISTS `public_token`     VARCHAR(40)  NULL                   AFTER `currency_code`;
+
+ALTER TABLE `invoice_items`
+    ADD COLUMN IF NOT EXISTS `variant` VARCHAR(120) NULL AFTER `description`;
+
+ALTER TABLE `book_business_details`
+    ADD COLUMN IF NOT EXISTS `inventory_method`         ENUM('FIFO','LIFO') NOT NULL DEFAULT 'FIFO' AFTER `invoice_counter`,
+    ADD COLUMN IF NOT EXISTS `invoice_prefix_purchase`  VARCHAR(20) NOT NULL DEFAULT 'PUR'          AFTER `inventory_method`,
+    ADD COLUMN IF NOT EXISTS `invoice_counter_purchase` INT UNSIGNED NOT NULL DEFAULT 1             AFTER `invoice_prefix_purchase`;
+
+ALTER TABLE `products`
+    ADD COLUMN IF NOT EXISTS `product_code` VARCHAR(60) NULL AFTER `sku`;
+
+-- ────────────────────────────────────────
+-- Additional columns missing from originals
+-- ────────────────────────────────────────
+ALTER TABLE `books`
+    ADD COLUMN IF NOT EXISTS `theme_color` VARCHAR(7)   NULL DEFAULT '#1a6b4a' AFTER `color`,
+    ADD COLUMN IF NOT EXISTS `email`       VARCHAR(180) NULL                   AFTER `description`,
+    ADD COLUMN IF NOT EXISTS `phone`       VARCHAR(30)  NULL                   AFTER `email`;
+
+ALTER TABLE `book_business_details`
+    ADD COLUMN IF NOT EXISTS `invoice_font`             VARCHAR(60)  NOT NULL DEFAULT 'DejaVu Sans' AFTER `footer_note`,
+    ADD COLUMN IF NOT EXISTS `inventory_method`         ENUM('FIFO','LIFO') NOT NULL DEFAULT 'FIFO' AFTER `invoice_counter`,
+    ADD COLUMN IF NOT EXISTS `invoice_prefix_purchase`  VARCHAR(20)  NOT NULL DEFAULT 'PUR'         AFTER `inventory_method`,
+    ADD COLUMN IF NOT EXISTS `invoice_counter_purchase` INT UNSIGNED NOT NULL DEFAULT 1             AFTER `invoice_prefix_purchase`;
+
+ALTER TABLE `book_currencies`
+    ADD COLUMN IF NOT EXISTS `name` VARCHAR(80) NULL AFTER `symbol`;
+
+-- returns / return_items
+CREATE TABLE IF NOT EXISTS `returns` (
+    `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `book_id`         INT UNSIGNED NOT NULL,
+    `invoice_id`      INT UNSIGNED NULL DEFAULT NULL,
+    `type`            ENUM('sales_return','purchase_return') NOT NULL,
+    `return_no`       VARCHAR(40)  NOT NULL,
+    `date`            DATE         NOT NULL,
+    `customer_id`     INT UNSIGNED NULL DEFAULT NULL,
+    `supplier_id`     INT UNSIGNED NULL DEFAULT NULL,
+    `subtotal`        DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `discount`        DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `delivery_charge` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `total_refund`    DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `remarks`         TEXT NULL,
+    `status`          VARCHAR(20) NOT NULL DEFAULT 'completed',
+    `created_by`      INT UNSIGNED NULL,
+    `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at`      DATETIME NULL DEFAULT NULL,
+    FOREIGN KEY (`book_id`)     REFERENCES `books`(`id`)     ON DELETE CASCADE,
+    FOREIGN KEY (`invoice_id`)  REFERENCES `invoices`(`id`)  ON DELETE SET NULL,
+    FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE SET NULL,
+    INDEX `idx_book` (`book_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `return_items` (
+    `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `return_id`   INT UNSIGNED NOT NULL,
+    `product_id`  INT UNSIGNED NULL DEFAULT NULL,
+    `description` VARCHAR(255) NOT NULL,
+    `qty`         DECIMAL(15,3) NOT NULL DEFAULT 0.000,
+    `unit_price`  DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    `line_total`  DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    FOREIGN KEY (`return_id`)  REFERENCES `returns`(`id`)  ON DELETE CASCADE,
+    FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

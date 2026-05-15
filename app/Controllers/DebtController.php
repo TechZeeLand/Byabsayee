@@ -205,6 +205,60 @@ class DebtController
         redirect('/books/'.$book['id'].'/debts', ['success' => 'Debt deleted.']);
     }
 
+    public static function createFromInvoice(array $invoice): void
+    {
+        if (empty($invoice['supplier_id'])) return;
+        try {
+            $existing = Database::row(
+                'SELECT id FROM debts WHERE invoice_id=? AND book_id=?',
+                [$invoice['id'], $invoice['book_id']]
+            );
+            if ($existing) return;
+
+            $supplierRow = Database::row('SELECT name FROM suppliers WHERE id=?', [$invoice['supplier_id']]);
+            $party = $supplierRow['name'] ?? null;
+
+            Database::run(
+                'INSERT INTO debts (book_id, supplier_id, invoice_id, title, party, amount, paid_amount, status, created_by, created_at)
+                 VALUES (?,?,?,?,?,?,0,?,?,?)',
+                [
+                    $invoice['book_id'],
+                    $invoice['supplier_id'],
+                    $invoice['id'],
+                    'Invoice #' . $invoice['invoice_no'],
+                    $party,
+                    $invoice['total'],
+                    'unpaid',
+                    (function_exists('auth') ? (auth()['id'] ?? null) : null),
+                    (function_exists('now') ? now() : date('Y-m-d H:i:s'))
+                ]
+            );
+        } catch (\Throwable $e) {
+            error_log('[DebtController::createFromInvoice] ' . $e->getMessage());
+        }
+    }
+
+    public static function syncFromInvoicePayment(int $invoiceId, float $newPaidTotal): void
+    {
+        try {
+            $debt = Database::row('SELECT * FROM debts WHERE invoice_id=? AND status != ?', [$invoiceId, 'cancelled']);
+            if (!$debt) return;
+
+            if ($newPaidTotal <= 0) {
+                Database::run("UPDATE debts SET paid_amount=0, status='unpaid', updated_at=? WHERE id=?",
+                    [date('Y-m-d H:i:s'), $debt['id']]);
+            } elseif ($newPaidTotal >= ((float)$debt['amount'] - 0.001)) {
+                Database::run("UPDATE debts SET paid_amount=?, status='paid', updated_at=? WHERE id=?",
+                    [(float)$debt['amount'], date('Y-m-d H:i:s'), $debt['id']]);
+            } else {
+                Database::run("UPDATE debts SET paid_amount=?, status='partial', updated_at=? WHERE id=?",
+                    [$newPaidTotal, date('Y-m-d H:i:s'), $debt['id']]);
+            }
+        } catch (\Throwable $e) {
+            error_log('[DebtController::syncFromInvoicePayment] ' . $e->getMessage());
+        }
+    }
+
     private function getDebtOrFail(string $debtId, int $bookId): array
     {
         $debt = Database::row('SELECT * FROM debts WHERE id=? AND book_id=?', [$debtId, $bookId]);
