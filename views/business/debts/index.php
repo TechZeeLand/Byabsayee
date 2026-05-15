@@ -108,6 +108,15 @@ ob_start();
         <tr>
             <td>
                 <div style="font-weight:600"><?= e($debt['title']) ?></div>
+                <?php if (!empty($debt['invoice_id'])): ?>
+                <div style="margin-top:2px">
+                    <a href="/books/<?= $book['id'] ?>/invoices/<?= (int)$debt['invoice_id'] ?>"
+                       style="color:var(--brand);text-decoration:none;font-size:12px"
+                       title="View Purchase Invoice">
+                        <i class="fa-solid fa-file-invoice fa-xs"></i> View Invoice
+                    </a>
+                </div>
+                <?php endif; ?>
                 <?php if (!empty($debt['note'])): ?>
                 <div class="td-muted" style="font-size:11px;font-style:italic;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= e($debt['note']) ?></div>
                 <?php endif; ?>

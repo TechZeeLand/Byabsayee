@@ -127,7 +127,15 @@ ob_start();
             </td>
             <td>
                 <div style="font-weight:500"><?= e($due['title']) ?></div>
-                <?php if (!empty($due['invoice_no'])): ?>
+                <?php if (!empty($due['invoice_no']) && !empty($due['invoice_id'])): ?>
+                <div class="td-muted">
+                    <a href="/books/<?= $book['id'] ?>/invoices/<?= (int)$due['invoice_id'] ?>"
+                       style="color:var(--brand);text-decoration:none;font-size:12px"
+                       title="View Invoice">
+                        <i class="fa-solid fa-file-invoice fa-xs"></i> <?= e($due['invoice_no']) ?>
+                    </a>
+                </div>
+                <?php elseif (!empty($due['invoice_no'])): ?>
                 <div class="td-muted"><i class="fa-solid fa-file-invoice fa-xs"></i> <?= e($due['invoice_no']) ?></div>
                 <?php endif; ?>
                 <?php if (!empty($due['note'])): ?>

@@ -206,6 +206,10 @@ ob_start();
                 <label style="color:var(--text-muted)">Delivery Charge</label>
                 <input type="number" name="delivery_charge" id="inp_delivery" value="0" min="0" step="0.01" oninput="recalc()" class="summary-input">
             </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <label style="color:var(--text-muted)">Handling Charge</label>
+                <input type="number" name="handling_charge" id="inp_handling" value="0" min="0" step="0.01" oninput="recalc()" class="summary-input">
+            </div>
             <div style="padding:8px 10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
                 <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">DELIVERY TYPE</div>
                 <div style="display:flex;gap:12px">
@@ -465,8 +469,9 @@ function recalc() {
     const disc     = parseFloat(document.getElementById('inp_discount')?.value)||0;
     const points   = parseFloat(document.getElementById('inp_points')?.value)||0;
     const delivery = parseFloat(document.getElementById('inp_delivery')?.value)||0;
+    const handling = parseFloat(document.getElementById('inp_handling')?.value)||0;
     const tax      = parseFloat(document.getElementById('inp_tax')?.value)||0;
-    const base     = subtotal - disc - points + delivery + tax;
+    const base     = subtotal - disc - points + delivery + handling + tax;
     const chkRound = document.getElementById('chk_rounding');
     let   rounding = 0;
     if (chkRound && chkRound.checked) {

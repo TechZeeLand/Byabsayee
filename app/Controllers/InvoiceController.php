@@ -2,6 +2,9 @@
 namespace App\Controllers;
 use App\Helpers\Database;
 
+// Forward declarations so static methods work without full autoload paths
+// (these classes live in the same namespace)
+
 class InvoiceController
 {
     public function index(array $params): void
@@ -98,6 +101,7 @@ class InvoiceController
         $discount       = (float)($_POST['discount']        ?? 0);
         $pointsDiscount = (float)($_POST['points_discount'] ?? 0);
         $deliveryCharge = (float)($_POST['delivery_charge'] ?? 0);
+        $handlingCharge = (float)($_POST['handling_charge'] ?? 0);
         $deliveryType   = $_POST['delivery_type']           ?? 'own';
         $roundingOn     = !empty($_POST['rounding_enabled']);
         $tax            = (float)($_POST['tax']             ?? 0);
@@ -135,23 +139,23 @@ class InvoiceController
 
         $rounding = 0.0;
         if ($roundingOn) {
-            $baseTotal = $subtotal - $discount - $pointsDiscount + $deliveryCharge + $tax;
+            $baseTotal = $subtotal - $discount - $pointsDiscount + $deliveryCharge + $handlingCharge + $tax;
             $rounding  = $baseTotal - floor($baseTotal);
         }
 
-        $total = max(0, $subtotal - $discount - $pointsDiscount + $deliveryCharge - $rounding + $tax);
+        $total = max(0, $subtotal - $discount - $pointsDiscount + $deliveryCharge + $handlingCharge - $rounding + $tax);
 
         Database::run(
             'INSERT INTO invoices
                 (book_id,type,invoice_no,customer_id,supplier_id,date,due_date,
-                 subtotal,discount,points_discount,delivery_charge,delivery_type,rounding,tax,
+                 subtotal,discount,points_discount,delivery_charge,handling_charge,delivery_type,rounding,tax,
                  total,paid,status,note_customer,note_seller,
                  delivery_method,payment_method,theme_color,currency_symbol,currency_code,
                  public_token,created_by,created_at)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
             [
                 $book['id'],$type,$invoiceNo,$customerId,$supplierId,$date,$dueDate,
-                $subtotal,$discount,$pointsDiscount,$deliveryCharge,$deliveryType,$rounding,$tax,
+                $subtotal,$discount,$pointsDiscount,$deliveryCharge,$handlingCharge,$deliveryType,$rounding,$tax,
                 $total,'draft',
                 $noteCustomer ?: null,$noteSeller ?: null,
                 $deliveryMethod ?: null,$paymentMethod ?: null,
@@ -223,6 +227,22 @@ class InvoiceController
 
         if ($type === 'purchase' && !empty($_FILES['attachment']['name']) && $_FILES['attachment']['error'] === 0) {
             $this->saveAttachment($invoiceId, $_FILES['attachment']);
+        }
+
+        // Auto-create due for sale invoices with a customer (unpaid/partial)
+        if ($type === 'sale' && $customerId) {
+            $invoiceRow = Database::row('SELECT * FROM invoices WHERE id=?', [$invoiceId]);
+            if ($invoiceRow) {
+                DuesController::createFromInvoice($invoiceRow);
+            }
+        }
+
+        // Auto-create debt for purchase invoices with a supplier (unpaid/partial)
+        if ($type === 'purchase' && $supplierId) {
+            $invoiceRow = Database::row('SELECT * FROM invoices WHERE id=?', [$invoiceId]);
+            if ($invoiceRow) {
+                DebtController::createFromInvoice($invoiceRow);
+            }
         }
 
         redirect('/books/'.$book['id'].'/invoices/'.$invoiceId, ['success' => 'Invoice '.$invoiceNo.' created.']);
@@ -333,6 +353,13 @@ class InvoiceController
         if ($invoice['customer_id'] && $invoice['type'] === 'sale') {
             $pts = (int)($amount / 100);
             if ($pts > 0) Database::run('UPDATE customers SET points=points+? WHERE id=?', [$pts,$invoice['customer_id']]);
+            // Sync due record
+            DuesController::syncFromInvoicePayment($invoice['id'], $newPaid);
+        }
+
+        if ($invoice['type'] === 'purchase') {
+            // Sync debt record
+            DebtController::syncFromInvoicePayment($invoice['id'], $newPaid);
         }
 
         redirect('/books/'.$book['id'].'/invoices/'.$invoice['id'], ['success' => format_money($amount).' recorded.']);

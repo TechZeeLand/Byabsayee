@@ -71,7 +71,7 @@ class CouponController
         );
 
         if ($exists) {
-            redirect('/books/'.$book['id'].'/coupons', ['error' => "Coupon code "{$code}" already exists."]); 
+            redirect('/books/'.$book['id'].'/coupons', ['error' => "Coupon code \"{$code}\" already exists."]); 
         }
 
         Database::run(
@@ -80,7 +80,7 @@ class CouponController
             [$book['id'], $name, $code, $type, $value, $note ?: null, auth()['id'], now()]
         );
 
-        redirect('/books/'.$book['id'].'/coupons', ['success' => "Coupon "{$code}" created."]);
+        redirect('/books/'.$book['id'].'/coupons', ['success' => "Coupon \"{$code}\" created."]);
     }
 
     public function update(array $params): void
@@ -114,7 +114,7 @@ class CouponController
             [$book['id'], $code, $coupon['id']]
         );
         if ($conflict) {
-            redirect('/books/'.$book['id'].'/coupons', ['error' => "Coupon code "{$code}" is already used by another coupon."]);
+            redirect('/books/'.$book['id'].'/coupons', ['error' => "Coupon code \"{$code}\" is already used by another coupon."]);
         }
 
         Database::run(
@@ -138,7 +138,7 @@ class CouponController
             [$newState, now(), $coupon['id'], $book['id']]
         );
 
-        $msg = $newState ? "Coupon "{$coupon['code']}" activated." : "Coupon "{$coupon['code']}" deactivated.";
+        $msg = $newState ? "Coupon \"{$coupon['code']}\" activated." : "Coupon \"{$coupon['code']}\" deactivated.";
         redirect('/books/'.$book['id'].'/coupons', ['success' => $msg]);
     }
 

@@ -232,6 +232,27 @@ class DuesController
         }
     }
 
+    public static function syncFromInvoicePayment(int $invoiceId, float $newPaidTotal): void
+    {
+        try {
+            $due = Database::row("SELECT * FROM dues WHERE invoice_id=? AND status != 'cancelled'", [$invoiceId]);
+            if (!$due) return;
+
+            if ($newPaidTotal <= 0) {
+                Database::run("UPDATE dues SET paid_amount=0, status='unpaid', updated_at=? WHERE id=?",
+                    [date('Y-m-d H:i:s'), $due['id']]);
+            } elseif ($newPaidTotal >= ((float)$due['amount'] - 0.001)) {
+                Database::run("UPDATE dues SET paid_amount=?, status='paid', updated_at=? WHERE id=?",
+                    [(float)$due['amount'], date('Y-m-d H:i:s'), $due['id']]);
+            } else {
+                Database::run("UPDATE dues SET paid_amount=?, status='partial', updated_at=? WHERE id=?",
+                    [$newPaidTotal, date('Y-m-d H:i:s'), $due['id']]);
+            }
+        } catch (\Throwable $e) {
+            error_log('[DuesController::syncFromInvoicePayment] ' . $e->getMessage());
+        }
+    }
+
     private function getBookOrFail(string $id): array
     {
         $book = Database::row(
