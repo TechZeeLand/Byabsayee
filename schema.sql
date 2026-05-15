@@ -563,6 +563,7 @@ CREATE TABLE IF NOT EXISTS `coupons` (
     `discount_value` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `note`           TEXT NULL,
     `is_active`      TINYINT(1)   NOT NULL DEFAULT 1,
+    `expires_at`     DATETIME NULL,
     `created_by`     INT UNSIGNED NULL,
     `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`     DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -584,7 +585,13 @@ ALTER TABLE `invoices`
     ADD COLUMN IF NOT EXISTS `theme_color`      VARCHAR(7)   NULL DEFAULT '#1a6b4a' AFTER `payment_method`,
     ADD COLUMN IF NOT EXISTS `currency_symbol`  VARCHAR(5)   NOT NULL DEFAULT '৳'   AFTER `theme_color`,
     ADD COLUMN IF NOT EXISTS `currency_code`    VARCHAR(10)  NOT NULL DEFAULT 'BDT' AFTER `currency_symbol`,
-    ADD COLUMN IF NOT EXISTS `public_token`     VARCHAR(40)  NULL                   AFTER `currency_code`;
+    ADD COLUMN IF NOT EXISTS `public_token`     VARCHAR(40)  NULL                   AFTER `currency_code`,
+    ADD COLUMN IF NOT EXISTS `coupon_code`      VARCHAR(30)  NULL                   AFTER `public_token`,
+    ADD COLUMN IF NOT EXISTS `coupon_discount`  DECIMAL(15,2) NOT NULL DEFAULT 0.00 AFTER `coupon_code`;
+
+ALTER TABLE `coupons`
+    ADD COLUMN IF NOT EXISTS `expires_at`  DATETIME NULL AFTER `is_active`,
+    ADD COLUMN IF NOT EXISTS `updated_at`  DATETIME NULL AFTER `expires_at`;
 
 ALTER TABLE `invoice_items`
     ADD COLUMN IF NOT EXISTS `variant` VARCHAR(120) NULL AFTER `description`;

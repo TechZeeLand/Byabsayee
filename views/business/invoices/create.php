@@ -192,6 +192,25 @@ ob_start();
                 <input type="number" name="discount" id="inp_discount" value="0" min="0" step="0.01" oninput="recalc()" class="summary-input">
             </div>
             <?php if ($isSale): ?>
+            <!-- Coupon Code -->
+            <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+                    <label style="color:var(--text-muted);white-space:nowrap">Coupon Code</label>
+                    <div style="display:flex;gap:4px;align-items:center">
+                        <input type="text" id="couponCodeInput" name="coupon_code"
+                               placeholder="Enter code…"
+                               style="width:100px;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;text-align:right;outline:none;text-transform:uppercase"
+                               oninput="this.value=this.value.toUpperCase()">
+                        <button type="button" onclick="applyCoupon()" class="btn btn-sm btn-secondary" style="padding:5px 8px;font-size:12px">Apply</button>
+                    </div>
+                </div>
+                <div id="couponStatus" style="font-size:11px;margin-top:4px;text-align:right;min-height:15px"></div>
+                <input type="hidden" name="coupon_discount" id="inp_coupon_discount" value="0">
+                <div id="coupon_discount_row" style="display:none;justify-content:space-between;margin-top:2px">
+                    <span style="color:var(--text-muted);font-size:13px">Coupon Discount</span>
+                    <strong id="couponDiscountDisplay" style="font-size:13px;color:var(--green)">-0.00</strong>
+                </div>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center">
                 <div>
                     <label style="color:var(--text-muted)">Use Points</label>
@@ -468,10 +487,11 @@ function recalc() {
     }
     const disc     = parseFloat(document.getElementById('inp_discount')?.value)||0;
     const points   = parseFloat(document.getElementById('inp_points')?.value)||0;
+    const couponD  = parseFloat(document.getElementById('inp_coupon_discount')?.value)||0;
     const delivery = parseFloat(document.getElementById('inp_delivery')?.value)||0;
     const handling = parseFloat(document.getElementById('inp_handling')?.value)||0;
     const tax      = parseFloat(document.getElementById('inp_tax')?.value)||0;
-    const base     = subtotal - disc - points + delivery + handling + tax;
+    const base     = subtotal - disc - points - couponD + delivery + handling + tax;
     const chkRound = document.getElementById('chk_rounding');
     let   rounding = 0;
     if (chkRound && chkRound.checked) {
@@ -485,7 +505,80 @@ function recalc() {
     const total = Math.max(0, base - rounding);
     document.getElementById('summarySubtotal').textContent = currentSym+subtotal.toFixed(0);
     document.getElementById('summaryTotal').textContent    = currentSym+total.toFixed(0);
+
+    // Re-apply coupon if subtotal changed (for percent coupons)
+    if (window._appliedCoupon && window._appliedCoupon.discount_type === 'percent') {
+        const newDisc = Math.min(subtotal * window._appliedCoupon.discount_value / 100, subtotal);
+        document.getElementById('inp_coupon_discount').value = newDisc.toFixed(2);
+        const dd = document.getElementById('couponDiscountDisplay');
+        if (dd) dd.textContent = '-' + currentSym + newDisc.toFixed(2);
+    }
 }
+
+// ── Coupon ────────────────────────────────────────────────────────────────────
+window._appliedCoupon = null;
+
+async function applyCoupon() {
+    const code = document.getElementById('couponCodeInput')?.value?.trim();
+    const statusEl = document.getElementById('couponStatus');
+    const rowEl    = document.getElementById('coupon_discount_row');
+    const discEl   = document.getElementById('inp_coupon_discount');
+    const dispEl   = document.getElementById('couponDiscountDisplay');
+
+    if (!code) {
+        // Clear coupon
+        window._appliedCoupon = null;
+        if (discEl) discEl.value = '0';
+        if (rowEl)  rowEl.style.display = 'none';
+        if (statusEl) statusEl.innerHTML = '';
+        recalc();
+        return;
+    }
+
+    let subtotal = 0;
+    for (let i = 0; i < rowCount; i++) {
+        const qEl = document.getElementById('iqty_'+i);
+        const pEl = document.getElementById('iprice_'+i);
+        const dEl = document.getElementById('idisc_'+i);
+        if (!qEl) continue;
+        subtotal += (parseFloat(qEl.value)||0)*(parseFloat(pEl.value)||0)*(1-(parseFloat(dEl.value)||0)/100);
+    }
+
+    if (statusEl) statusEl.innerHTML = '<span style="color:#888">Checking…</span>';
+
+    try {
+        const res  = await fetch(`/books/<?= $book['id'] ?>/coupons/validate?code=${encodeURIComponent(code)}&subtotal=${subtotal}`);
+        const data = await res.json();
+
+        if (data.error) {
+            window._appliedCoupon = null;
+            if (discEl) discEl.value = '0';
+            if (rowEl)  rowEl.style.display = 'none';
+            if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)"><i class="fa-solid fa-circle-xmark"></i> ${data.error}</span>`;
+            recalc();
+            return;
+        }
+
+        window._appliedCoupon = data;
+        if (discEl) discEl.value = data.discount.toFixed(2);
+        if (rowEl)  rowEl.style.display = 'flex';
+        if (dispEl) dispEl.textContent  = '-' + currentSym + data.discount.toFixed(2);
+
+        const label = data.discount_type === 'percent'
+            ? `${data.discount_value}% off`
+            : `${currentSym}${data.discount_value} off`;
+        if (statusEl) statusEl.innerHTML = `<span style="color:var(--green)"><i class="fa-solid fa-circle-check"></i> <strong>${data.name}</strong> — ${label} applied!</span>`;
+
+        recalc();
+    } catch(e) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:var(--red)">Connection error. Try again.</span>';
+    }
+}
+
+// Allow pressing Enter in coupon field
+document.getElementById('couponCodeInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); }
+});
 
 // Start with one empty row
 addRow();

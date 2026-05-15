@@ -109,7 +109,34 @@ class InvoiceController
         $paymentMethod  = trim($_POST['payment_method']     ?? '');
         $currencySymbol = trim($_POST['currency_symbol']    ?? '৳');
         $currencyCode   = trim($_POST['currency_code']      ?? 'BDT');
+        $couponCode     = strtoupper(trim($_POST['coupon_code']  ?? ''));
+        $couponDiscount = (float)($_POST['coupon_discount'] ?? 0);
         $themeColor     = $book['theme_color'] ?? '#1a6b4a';
+
+        // Validate coupon server-side (prevents tampered discount values)
+        if ($couponCode && $type === 'sale') {
+            $subtotalEst = 0;
+            foreach (($_POST['item_name'] ?? []) as $i => $n) {
+                if (!trim($n)) continue;
+                $q = (float)($_POST['item_qty'][$i] ?? 1);
+                $p = (float)($_POST['item_price'][$i] ?? 0);
+                $d = (float)($_POST['item_discount'][$i] ?? 0);
+                $subtotalEst += $q * $p * (1 - $d / 100);
+            }
+            $couponResult = \App\Controllers\CouponController::validate($book['id'], $couponCode, $subtotalEst);
+            if ($couponResult === null) {
+                $couponCode = '';
+                $couponDiscount = 0;
+            } elseif (!empty($couponResult['expired'])) {
+                redirect('/books/'.$book['id'].'/invoices/create?type='.$type,
+                    ['error' => "Coupon \"{$couponCode}\" has expired."]);
+            } else {
+                $couponDiscount = $couponResult['discount'];
+            }
+        } else {
+            $couponCode     = '';
+            $couponDiscount = 0;
+        }
 
         $itemNames    = $_POST['item_name']       ?? [];
         $itemQtys     = $_POST['item_qty']        ?? [];
@@ -139,23 +166,25 @@ class InvoiceController
 
         $rounding = 0.0;
         if ($roundingOn) {
-            $baseTotal = $subtotal - $discount - $pointsDiscount + $deliveryCharge + $handlingCharge + $tax;
+            $baseTotal = $subtotal - $discount - $pointsDiscount - $couponDiscount + $deliveryCharge + $handlingCharge + $tax;
             $rounding  = $baseTotal - floor($baseTotal);
         }
 
-        $total = max(0, $subtotal - $discount - $pointsDiscount + $deliveryCharge + $handlingCharge - $rounding + $tax);
+        $total = max(0, $subtotal - $discount - $pointsDiscount - $couponDiscount + $deliveryCharge + $handlingCharge - $rounding + $tax);
 
         Database::run(
             'INSERT INTO invoices
                 (book_id,type,invoice_no,customer_id,supplier_id,date,due_date,
-                 subtotal,discount,points_discount,delivery_charge,handling_charge,delivery_type,rounding,tax,
+                 subtotal,discount,points_discount,coupon_code,coupon_discount,
+                 delivery_charge,handling_charge,delivery_type,rounding,tax,
                  total,paid,status,note_customer,note_seller,
                  delivery_method,payment_method,theme_color,currency_symbol,currency_code,
                  public_token,created_by,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
             [
                 $book['id'],$type,$invoiceNo,$customerId,$supplierId,$date,$dueDate,
-                $subtotal,$discount,$pointsDiscount,$deliveryCharge,$handlingCharge,$deliveryType,$rounding,$tax,
+                $subtotal,$discount,$pointsDiscount,$couponCode ?: null,$couponDiscount,
+                $deliveryCharge,$handlingCharge,$deliveryType,$rounding,$tax,
                 $total,'draft',
                 $noteCustomer ?: null,$noteSeller ?: null,
                 $deliveryMethod ?: null,$paymentMethod ?: null,

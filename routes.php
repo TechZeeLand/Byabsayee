@@ -161,3 +161,5 @@ $router->post('/books/{id}/coupons/add',                        [CouponControlle
 $router->post('/books/{id}/coupons/{coupon_id}/edit',           [CouponController::class, 'update']);
 $router->post('/books/{id}/coupons/{coupon_id}/toggle',         [CouponController::class, 'toggle']);
 $router->post('/books/{id}/coupons/{coupon_id}/delete',         [CouponController::class, 'delete']);
+$router->get( '/books/{id}/coupons/print',                      [CouponController::class, 'printCoupons']);
+$router->get( '/books/{id}/coupons/validate',                   [CouponController::class, 'validateAjax']);
