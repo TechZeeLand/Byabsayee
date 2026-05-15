@@ -287,16 +287,25 @@ ob_start();
 <div class="modal-backdrop" id="addDueModal">
     <div class="modal">
         <div class="modal-title"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--amber)"></i> Add Manual Due</div>
-        <form method="POST" action="/books/<?= $book['id'] ?>/dues/add">
+        <form method="POST" action="/books/<?= $book['id'] ?>/dues/add"
+              onsubmit="
+                if (!document.getElementById('dueCustomerId').value) {
+                    document.getElementById('dueCustomerSearch').style.border='2px solid var(--red)';
+                    document.getElementById('dueCustomerSearch').focus();
+                    document.getElementById('dueCustomerHint').style.display='block';
+                    return false;
+                }
+              ">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <div class="form-grid" style="gap:12px">
                 <div class="form-group full" style="position:relative">
                     <label>Customer *</label>
                     <input type="text" id="dueCustomerSearch" autocomplete="off"
                            placeholder="Search by name or phone…"
-                           oninput="searchDueCustomer(this.value)">
-                    <input type="hidden" name="customer_id" id="dueCustomerId" required>
+                           oninput="searchDueCustomer(this.value); this.style.border=''; document.getElementById('dueCustomerHint').style.display='none';">
+                    <input type="hidden" name="customer_id" id="dueCustomerId">
                     <div id="dueCustomerDropdown" class="autocomplete-dropdown" style="display:none"></div>
+                    <div id="dueCustomerHint" style="display:none;color:var(--red);font-size:12px;margin-top:4px">⚠ Please search and <strong>click</strong> a customer from the list.</div>
                 </div>
                 <div class="form-group full">
                     <label>Title *</label>

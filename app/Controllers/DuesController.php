@@ -83,7 +83,7 @@ class DuesController
         $note       = trim($_POST['note'] ?? '');
 
         if (!$customerId || $amount <= 0 || !$title) {
-            redirect('/books/'.$book['id'].'/dues', ['error' => 'Customer, title and amount are required.']);
+            redirect('/books/'.$book['id'].'/dues', ['error' => 'Please select a customer from the dropdown, enter a title, and set an amount.']);
         }
 
         $customer = Database::row(

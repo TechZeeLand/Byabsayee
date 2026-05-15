@@ -152,7 +152,7 @@ class InvoiceController
                  total,paid,status,note_customer,note_seller,
                  delivery_method,payment_method,theme_color,currency_symbol,currency_code,
                  public_token,created_by,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)',
             [
                 $book['id'],$type,$invoiceNo,$customerId,$supplierId,$date,$dueDate,
                 $subtotal,$discount,$pointsDiscount,$deliveryCharge,$handlingCharge,$deliveryType,$rounding,$tax,
