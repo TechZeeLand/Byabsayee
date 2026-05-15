@@ -66,7 +66,6 @@ body {
     width: 210mm;
     min-height: 297mm;
     margin: 0 auto;
-    padding: 5mm;
     box-shadow: 0 4px 20px rgba(0,0,0,.15);
     border-radius: 4px;
 }
@@ -123,7 +122,7 @@ body {
     width: 11mm;
     height: 11mm;
     flex-shrink: 0;
-    border: 2px solid #fff;
+    border: 3px solid #fff;
 }
 .coupon-qr canvas,
 .coupon-qr img {
@@ -146,7 +145,7 @@ body {
 .coupon-divider {
     border: none;
     border-top: 2px dashed var(--theme);
-    margin: 10px 10px 0px 10px;
+    margin: 10px 10px 5px 10px;
 }
 
 /* ── Code ── */
@@ -263,7 +262,7 @@ function buildCouponHtml(c, idx) {
     <div class="coupon">
         <div class="coupon-inner">
             <div class="coupon-top">
-                <img src="${logoHtml}" alt="Logo">
+                ${logoHtml}
                 <p>${esc(BIZNAME)}</p>
                 <div class="coupon-qr" id="qr_${idx}_${c.id}"></div>
             </div>
