@@ -137,6 +137,10 @@ function navActive(string $path): string {
     </nav>
 
     <div class="sidebar-bottom">
+        <button onclick="openNotifPanel(event)" class="nav-item" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;position:relative">
+            <i class="fa-solid fa-bell"></i> Notifications
+            <span class="notif-badge" id="sidebarNotifBadge" style="display:none;position:absolute;top:6px;left:22px"></span>
+        </button>
         <a href="/settings" class="nav-item">
             <i class="fa-solid fa-sliders"></i> App Settings
         </a>
@@ -160,6 +164,10 @@ function navActive(string $path): string {
             <span></span><span></span><span></span>
         </button>
         <span class="mobile-title"><?= e($pageTitle ?? 'Byabsayee') ?></span>
+        <button onclick="openNotifPanel(event)" class="btn btn-secondary" style="position:relative;padding:6px 10px;margin-left:auto;margin-right:8px">
+            <i class="fa-solid fa-bell"></i>
+            <span class="notif-badge" id="mobileNotifBadge" style="display:none"></span>
+        </button>
     </div>
 
     <div class="app-content">
@@ -209,11 +217,8 @@ function openNotifPanel(e) {
     document.getElementById('notifBackdrop').classList.add('open');
     if (notifLoaded) return;
     const bookId = <?= $currentBookId ? (int)$currentBookId : 'null' ?>;
-    if (!bookId) {
-        document.getElementById('notifPanelBody').innerHTML = '<div class="notif-empty">No notifications.</div>';
-        return;
-    }
-    fetch('/books/' + bookId + '/notifications?json=1')
+    const url = bookId ? '/books/' + bookId + '/notifications' : '/notifications';
+    fetch(url)
         .then(r => r.ok ? r.json() : [])
         .then(data => {
             notifLoaded = true;
@@ -222,13 +227,22 @@ function openNotifPanel(e) {
                 body.innerHTML = '<div class="notif-empty"><i class="fa-regular fa-bell-slash"></i><br>No notifications yet.</div>';
                 return;
             }
-            body.innerHTML = data.map(n =>
-                `<div class="notif-item notif-${n.type}">
-                    <div class="notif-item-title">${escHtml(n.title)}</div>
+            body.innerHTML = data.map(n => {
+                let actionBtn = '';
+                if (n.type === 'invitation' && n.action_url) {
+                    actionBtn = `<div style="margin-top:6px"><a href="${escHtml(n.action_url)}" class="btn btn-sm btn-primary" style="font-size:11px;padding:3px 10px">View Invitation</a></div>`;
+                } else if (n.action_url) {
+                    actionBtn = `<div style="margin-top:6px"><a href="${escHtml(n.action_url)}" class="btn btn-sm btn-secondary" style="font-size:11px;padding:3px 10px">Open</a></div>`;
+                }
+                const readStyle = n.read ? 'opacity:0.6' : '';
+                const bookBadge = (!bookId && n.book_id) ? `<span style="font-size:10px;color:var(--text-muted);margin-left:4px">· Book #${escHtml(String(n.book_id))}</span>` : '';
+                return `<div class="notif-item notif-${escHtml(n.type)}" style="${readStyle}">
+                    <div class="notif-item-title">${escHtml(n.title)}${bookBadge}</div>
                     ${n.body ? `<div class="notif-item-body">${escHtml(n.body)}</div>` : ''}
-                    <div class="notif-item-meta">${escHtml(n.sender_name||'System')} · ${escHtml(n.created_at||'')}</div>
-                </div>`
-            ).join('');
+                    <div class="notif-item-meta">${escHtml(n.created_at||'')}</div>
+                    ${actionBtn}
+                </div>`;
+            }).join('');
         })
         .catch(() => {
             document.getElementById('notifPanelBody').innerHTML = '<div class="notif-empty">Could not load.</div>';
@@ -237,6 +251,7 @@ function openNotifPanel(e) {
 function closeNotifPanel(e) {
     if (e && e.target !== document.getElementById('notifBackdrop')) return;
     document.getElementById('notifBackdrop').classList.remove('open');
+    notifLoaded = false; // reset so next open re-fetches (and badge gets cleared)
 }
 function escHtml(s) {
     const d = document.createElement('div');

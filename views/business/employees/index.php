@@ -38,6 +38,9 @@ ob_start();
     </div>
     <?php if ($isOwner): ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="/books/<?= $book['id'] ?>/notifications/send" class="btn btn-secondary">
+            <i class="fa-solid fa-paper-plane"></i> Send Notification
+        </a>
         <button class="btn btn-secondary" data-modal="manageDesignationsModal">
             <i class="fa-solid fa-sitemap"></i> Designations
         </button>

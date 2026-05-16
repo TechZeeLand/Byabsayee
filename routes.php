@@ -20,6 +20,7 @@ use App\Controllers\CouponController;
 use App\Controllers\ReturnController;
 use App\Controllers\ReportsController;
 use App\Controllers\EmployeeController;
+use App\Controllers\NotificationController;
 
 // =============================================================================
 // PUBLIC
@@ -185,6 +186,13 @@ $router->get( '/books/{id}/employees/designations/{desig_id}/permissions',      
 $router->get( '/invitations/{token}',          [EmployeeController::class, 'acceptPage']);
 $router->post('/invitations/{token}/respond',  [EmployeeController::class, 'respondInvitation']);
 
+// ── Salary ────────────────────────────────────────────────────────────────────
+$router->post('/books/{id}/employees/{employee_id}/salary/pay',       [EmployeeController::class, 'paySalary']);
+$router->post('/books/{id}/employees/{employee_id}/send-invite',      [EmployeeController::class, 'sendInviteForEmployee']);
+
 // ── Notifications ─────────────────────────────────────────────────────────────
-$router->get( '/books/{id}/notifications',     [EmployeeController::class, 'notifications']);
-$router->get( '/notifications/count',          [EmployeeController::class, 'unreadCount']);
+$router->get( '/notifications',                        [NotificationController::class, 'globalIndex']);
+$router->get( '/notifications/count',                  [NotificationController::class, 'unreadCount']);
+$router->get( '/books/{id}/notifications',             [NotificationController::class, 'bookIndex']);
+$router->get( '/books/{id}/notifications/send',        [NotificationController::class, 'sendPage']);
+$router->post('/books/{id}/notifications/send',        [NotificationController::class, 'send']);

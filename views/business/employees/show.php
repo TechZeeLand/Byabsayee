@@ -21,21 +21,28 @@ $moduleLabels = [
     'privileges'    => ['label'=>'Privileges',     'icon'=>'fa-star'],
     'book_settings' => ['label'=>'Book Settings',  'icon'=>'fa-gear'],
 ];
-$actionLabels = [
-    'view'         => 'View',
-    'create'       => 'Create',
-    'edit'         => 'Edit',
-    'delete'       => 'Delete',
-    'adjust_stock' => 'Adjust Stock',
-    'pay'          => 'Pay',
-    'invite'       => 'Invite',
-];
+$actionLabels = ['view'=>'View','create'=>'Create','edit'=>'Edit','delete'=>'Delete',
+                 'adjust_stock'=>'Adjust Stock','pay'=>'Pay','invite'=>'Invite'];
 
-// Get current permissions from book_member or empty
 $currentPerms = [];
 if ($member) {
     $currentPerms = json_decode($member['permissions'] ?? '{}', true) ?? [];
 }
+
+// Salary history
+$salaryHistory = [];
+$totalSalaryPaid = 0;
+try {
+    $salaryHistory = \App\Helpers\Database::query(
+        'SELECT sp.*, e.title AS expense_title
+         FROM employee_salary_payments sp
+         LEFT JOIN expenses e ON e.id = sp.expense_id
+         WHERE sp.employee_id=? AND sp.book_id=?
+         ORDER BY sp.created_at DESC',
+        [$employee['id'], $book['id']]
+    );
+    $totalSalaryPaid = array_sum(array_column($salaryHistory, 'amount'));
+} catch (\Throwable $e) {}
 
 ob_start();
 ?>
@@ -52,12 +59,10 @@ ob_start();
             <?php if ($employee['designation_name']): ?>
                 <span class="badge badge-blue"><?= e($employee['designation_name']) ?></span>
             <?php endif; ?>
-            <?php
-            $sc = ['active'=>'green','inactive'=>'gray','terminated'=>'red'][$employee['status']] ?? 'gray';
-            ?>
+            <?php $sc = ['active'=>'green','inactive'=>'gray','terminated'=>'red'][$employee['status']] ?? 'gray'; ?>
             <span class="badge badge-<?= $sc ?>"><?= ucfirst($employee['status']) ?></span>
             <?php if ($employee['user_id']): ?>
-                <span class="badge badge-green"><i class="fa-solid fa-link"></i> Has Byabsayee Account</span>
+                <span class="badge badge-green"><i class="fa-solid fa-link"></i> Has Account</span>
             <?php else: ?>
                 <span class="badge badge-gray">No account</span>
             <?php endif; ?>
@@ -69,7 +74,7 @@ ob_start();
         <?php if ($employee['user_id'] && $member): ?>
             <?php if ($member['status'] === 'active'): ?>
             <form method="POST" action="/books/<?= $book['id'] ?>/employees/<?= $employee['id'] ?>/revoke"
-                  data-confirm="Revoke app access for <?= e($employee['name']) ?>? They will no longer be able to access this book.">
+                  data-confirm="Revoke app access for <?= e($employee['name']) ?>?">
                 <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
                 <button class="btn btn-secondary" style="color:var(--red)">Revoke Access</button>
             </form>
@@ -81,7 +86,7 @@ ob_start();
             <?php endif; ?>
         <?php endif; ?>
         <form method="POST" action="/books/<?= $book['id'] ?>/employees/<?= $employee['id'] ?>/delete"
-              data-confirm="Remove <?= e($employee['name']) ?> from employees?">
+              data-confirm="Remove <?= e($employee['name']) ?>?">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <button class="btn btn-danger">Delete</button>
         </form>
@@ -89,83 +94,91 @@ ob_start();
     <?php endif; ?>
 </div>
 
-<div style="display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start">
+<div style="display:grid;grid-template-columns:290px 1fr;gap:16px;align-items:start">
 
-    <!-- LEFT: profile info -->
+    <!-- LEFT COLUMN -->
     <div style="display:flex;flex-direction:column;gap:12px">
 
+        <!-- Contact / Details -->
         <div class="card">
-            <p class="card-title">Contact Details</p>
+            <p class="card-title">Details</p>
             <div style="font-size:13px;display:flex;flex-direction:column;gap:7px">
-                <?php if ($employee['phone']): ?>
-                    <div><span style="color:var(--text-muted)">Phone:</span> <?= e($employee['phone']) ?></div>
-                <?php endif; ?>
-                <?php if ($employee['email']): ?>
-                    <div><span style="color:var(--text-muted)">Email:</span> <?= e($employee['email']) ?></div>
-                <?php endif; ?>
-                <?php if ($employee['address']): ?>
-                    <div><span style="color:var(--text-muted)">Address:</span> <?= e($employee['address']) ?></div>
-                <?php endif; ?>
-                <?php if ($employee['department']): ?>
-                    <div><span style="color:var(--text-muted)">Department:</span> <?= e($employee['department']) ?></div>
-                <?php endif; ?>
-                <?php if ($employee['join_date']): ?>
-                    <div><span style="color:var(--text-muted)">Joined:</span> <?= format_date($employee['join_date']) ?></div>
-                <?php endif; ?>
-                <?php if ($employee['salary']): ?>
-                    <div><span style="color:var(--text-muted)">Salary:</span>
-                        <?= format_money($employee['salary']) ?> / <?= $employee['salary_type'] ?>
-                    </div>
-                <?php endif; ?>
-                <?php if ($employee['notes']): ?>
-                    <div><span style="color:var(--text-muted)">Notes:</span> <?= e($employee['notes']) ?></div>
-                <?php endif; ?>
+                <?php if ($employee['phone']): ?><div><span style="color:var(--text-muted)">Phone:</span> <?= e($employee['phone']) ?></div><?php endif; ?>
+                <?php if ($employee['email']): ?><div><span style="color:var(--text-muted)">Email:</span> <?= e($employee['email']) ?></div><?php endif; ?>
+                <?php if ($employee['address']): ?><div><span style="color:var(--text-muted)">Address:</span> <?= e($employee['address']) ?></div><?php endif; ?>
+                <?php if ($employee['department']): ?><div><span style="color:var(--text-muted)">Department:</span> <?= e($employee['department']) ?></div><?php endif; ?>
+                <?php if ($employee['join_date']): ?><div><span style="color:var(--text-muted)">Joined:</span> <?= format_date($employee['join_date']) ?></div><?php endif; ?>
+                <?php if ($employee['notes']): ?><div><span style="color:var(--text-muted)">Notes:</span> <?= e($employee['notes']) ?></div><?php endif; ?>
             </div>
         </div>
 
-        <?php if ($employee['user_id']): ?>
+        <!-- Salary card -->
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <p class="card-title" style="margin:0">Salary</p>
+                <?php if ($isOwner && $employee['salary']): ?>
+                <button class="btn btn-sm btn-primary" data-modal="paySalaryModal">Pay</button>
+                <?php endif; ?>
+            </div>
+            <?php if ($employee['salary']): ?>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+                <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+                    <div style="font-size:11px;color:var(--text-muted)">Monthly Salary</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--brand)"><?= format_money($employee['salary']) ?></div>
+                </div>
+                <div style="background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+                    <div style="font-size:11px;color:var(--text-muted)">Total Paid</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--green)"><?= format_money($totalSalaryPaid) ?></div>
+                </div>
+            </div>
+            <?php if (!empty($salaryHistory)): ?>
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Recent payments</p>
+            <?php foreach (array_slice($salaryHistory, 0, 4) as $sp): ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">
+                <div>
+                    <div style="font-weight:500"><?= e($sp['period_label'] ?? format_date($sp['created_at'])) ?></div>
+                    <div style="color:var(--text-muted)"><?= ucfirst($sp['payment_method']) ?></div>
+                </div>
+                <div style="font-weight:600;color:var(--green)"><?= format_money($sp['amount']) ?></div>
+            </div>
+            <?php endforeach; ?>
+            <?php if (count($salaryHistory) > 4): ?>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:6px"><?= count($salaryHistory)-4 ?> more payments…</p>
+            <?php endif; ?>
+            <?php else: ?>
+            <p style="font-size:12px;color:var(--text-muted)">No payments recorded yet.</p>
+            <?php endif; ?>
+            <?php else: ?>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">No salary set. Edit employee to add salary.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- App Access -->
         <div class="card">
             <p class="card-title">App Access</p>
-            <?php if ($member): ?>
+            <?php if ($employee['user_id'] && $member): ?>
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                    <div class="s-avatar" style="width:32px;height:32px;font-size:12px;flex-shrink:0">
-                        <?= mb_strtoupper(mb_substr($employee['name'], 0, 1)) ?>
-                    </div>
+                    <div class="s-avatar" style="width:32px;height:32px;font-size:12px;flex-shrink:0"><?= mb_strtoupper(mb_substr($employee['name'],0,1)) ?></div>
                     <div>
                         <div style="font-size:13px;font-weight:600"><?= e($employee['name']) ?></div>
                         <div style="font-size:11px;color:var(--text-muted)"><?= e($employee['email'] ?? '') ?></div>
                     </div>
                 </div>
-                <div style="font-size:12px">
-                    Status: <span class="badge badge-<?= $member['status']==='active'?'green':'gray' ?>">
-                        <?= ucfirst($member['status']) ?>
-                    </span>
-                </div>
+                <div style="font-size:12px">Status: <span class="badge badge-<?= $member['status']==='active'?'green':'gray' ?>"><?= ucfirst($member['status']) ?></span></div>
                 <?php if ($member['designation_name']): ?>
-                <div style="font-size:12px;margin-top:4px">
-                    Designation: <span class="badge badge-blue"><?= e($member['designation_name']) ?></span>
-                </div>
+                <div style="font-size:12px;margin-top:4px">Role: <span class="badge badge-blue"><?= e($member['designation_name']) ?></span></div>
                 <?php endif; ?>
+            <?php elseif ($employee['user_id']): ?>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Account linked, invitation may be pending.</p>
             <?php else: ?>
-                <p style="font-size:13px;color:var(--text-muted)">Linked to account but not yet a book member.</p>
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">This employee does not have a Byabsayee account linked.</p>
+                <?php if ($isOwner): ?>
+                <button class="btn btn-sm btn-secondary" data-modal="sendInviteModal">
+                    <i class="fa-solid fa-envelope"></i> Send Invitation
+                </button>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
-        <?php else: ?>
-        <div class="card">
-            <p class="card-title">App Access</p>
-            <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
-                This employee does not have a Byabsayee account linked.
-            </p>
-            <?php if ($isOwner): ?>
-            <button class="btn btn-sm btn-secondary" onclick="
-                document.getElementById('inviteEmailField').value='<?= e($employee['email']??'') ?>';
-                document.getElementById('inviteModal').classList.add('open');
-            ">
-                <i class="fa-solid fa-envelope"></i> Send Invitation
-            </button>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
     </div>
 
     <!-- RIGHT: permissions -->
@@ -186,26 +199,20 @@ ob_start();
                     <?php endif; ?>
                     <button type="button" onclick="toggleAll(true)"  class="btn btn-sm btn-secondary">All</button>
                     <button type="button" onclick="toggleAll(false)" class="btn btn-sm btn-secondary">None</button>
-                    <button type="submit" class="btn btn-sm btn-primary">Save Permissions</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
                 </div>
             </div>
-
             <div class="perm-grid">
             <?php foreach ($modules as $mod => $actions): ?>
             <?php $ml = $moduleLabels[$mod] ?? ['label'=>$mod,'icon'=>'fa-circle']; ?>
             <div class="perm-row">
-                <div class="perm-module">
-                    <i class="fa-solid <?= $ml['icon'] ?>"></i> <?= $ml['label'] ?>
-                </div>
+                <div class="perm-module"><i class="fa-solid <?= $ml['icon'] ?>"></i> <?= $ml['label'] ?></div>
                 <div class="perm-actions">
                 <?php foreach ($actions as $action): ?>
                 <?php $checked = !empty($currentPerms[$mod][$action]); ?>
-                    <label class="perm-check <?= $checked ? 'checked' : '' ?>"
-                           id="lbl-<?= $mod ?>-<?= $action ?>">
-                        <input type="checkbox"
-                               name="perm[<?= $mod ?>][<?= $action ?>]"
-                               class="emp-perm"
-                               data-mod="<?= $mod ?>" data-action="<?= $action ?>"
+                    <label class="perm-check <?= $checked ? 'checked' : '' ?>">
+                        <input type="checkbox" name="perm[<?= $mod ?>][<?= $action ?>]"
+                               class="emp-perm" data-mod="<?= $mod ?>" data-action="<?= $action ?>"
                                <?= $checked ? 'checked' : '' ?>
                                onchange="this.closest('label').classList.toggle('checked', this.checked)">
                         <?= $actionLabels[$action] ?? $action ?>
@@ -217,85 +224,69 @@ ob_start();
             </div>
         </form>
         <?php elseif (!$employee['user_id']): ?>
-        <div class="card">
-            <div class="empty-state" style="padding:40px">
-                <div class="empty-icon"><i class="fa-solid fa-lock" style="font-size:32px;color:var(--text-muted)"></i></div>
-                <h3>No App Permissions</h3>
-                <p>This employee doesn't have a Byabsayee account. Invite them to set up permissions.</p>
-            </div>
-        </div>
+        <div class="card"><div class="empty-state" style="padding:40px">
+            <div class="empty-icon"><i class="fa-solid fa-lock" style="font-size:32px;color:var(--text-muted)"></i></div>
+            <h3>No App Permissions</h3>
+            <p>Send an invitation to set up permissions once they join.</p>
+        </div></div>
         <?php elseif ($member && $member['status'] !== 'active'): ?>
-        <div class="card">
-            <div class="empty-state" style="padding:40px">
-                <div class="empty-icon"><i class="fa-solid fa-ban" style="font-size:32px;color:var(--red)"></i></div>
-                <h3>Access Revoked</h3>
-                <p>This employee's access has been revoked. Restore access to re-enable permissions.</p>
-            </div>
-        </div>
+        <div class="card"><div class="empty-state" style="padding:40px">
+            <div class="empty-icon"><i class="fa-solid fa-ban" style="font-size:32px;color:var(--red)"></i></div>
+            <h3>Access Revoked</h3>
+            <p>Restore access to re-enable permissions.</p>
+        </div></div>
         <?php else: ?>
-        <div class="card">
-            <div class="empty-state" style="padding:40px">
-                <div class="empty-icon"><i class="fa-solid fa-clock" style="font-size:32px;color:var(--accent)"></i></div>
-                <h3>Invitation Pending</h3>
-                <p>Waiting for the user to accept the invitation before permissions can be set.</p>
-            </div>
-        </div>
+        <div class="card"><div class="empty-state" style="padding:40px">
+            <div class="empty-icon"><i class="fa-solid fa-clock" style="font-size:32px;color:var(--accent)"></i></div>
+            <h3>Invitation Pending</h3>
+            <p>Waiting for the user to accept the invitation.</p>
+        </div></div>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- EDIT EMPLOYEE MODAL -->
+<!-- ── MODALS ─────────────────────────────────────────────── -->
+
 <?php if ($isOwner): ?>
+
+<!-- EDIT EMPLOYEE -->
 <div class="modal-backdrop" id="editEmployeeModal">
     <div class="modal">
         <div class="modal-title">Edit Employee</div>
         <form method="POST" action="/books/<?= $book['id'] ?>/employees/<?= $employee['id'] ?>/edit">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
             <div class="form-grid" style="gap:12px">
-                <div class="form-group full"><label>Name *</label>
-                    <input type="text" name="name" value="<?= e($employee['name']) ?>" required></div>
+                <div class="form-group full"><label>Name *</label><input type="text" name="name" value="<?= e($employee['name']) ?>" required></div>
                 <div class="form-group">
                     <label>Designation</label>
                     <select name="designation_id">
                         <option value="">— None —</option>
                         <?php foreach ($designations as $d): ?>
-                        <option value="<?= $d['id'] ?>" <?= $employee['designation_id']==$d['id']?'selected':'' ?>>
-                            <?= e($d['name']) ?>
-                        </option>
+                        <option value="<?= $d['id'] ?>" <?= $employee['designation_id']==$d['id']?'selected':'' ?>><?= e($d['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Custom Designation</label>
-                    <input type="text" name="designation_name" value="<?= e($employee['designation_name']??'') ?>">
-                </div>
-                <div class="form-group"><label>Phone</label>
-                    <input type="text" name="phone" value="<?= e($employee['phone']??'') ?>"></div>
-                <div class="form-group"><label>Email</label>
-                    <input type="email" name="email" value="<?= e($employee['email']??'') ?>"></div>
-                <div class="form-group full"><label>Address</label>
-                    <textarea name="address" style="min-height:48px"><?= e($employee['address']??'') ?></textarea></div>
-                <div class="form-group"><label>Department</label>
-                    <input type="text" name="department" value="<?= e($employee['department']??'') ?>"></div>
-                <div class="form-group"><label>Join Date</label>
-                    <input type="date" name="join_date" value="<?= e($employee['join_date']??'') ?>"></div>
-                <div class="form-group"><label>Salary</label>
-                    <input type="number" name="salary" step="0.01" min="0" value="<?= e($employee['salary']??'') ?>"></div>
+                <div class="form-group"><label>Custom Designation</label><input type="text" name="designation_name" value="<?= e($employee['designation_name']??'') ?>"></div>
+                <div class="form-group"><label>Phone</label><input type="text" name="phone" value="<?= e($employee['phone']??'') ?>"></div>
+                <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= e($employee['email']??'') ?>"></div>
+                <div class="form-group full"><label>Address</label><textarea name="address" style="min-height:48px"><?= e($employee['address']??'') ?></textarea></div>
+                <div class="form-group"><label>Department</label><input type="text" name="department" value="<?= e($employee['department']??'') ?>"></div>
+                <div class="form-group"><label>Join Date</label><input type="date" name="join_date" value="<?= e($employee['join_date']??'') ?>"></div>
+                <div class="form-group"><label>Salary</label><input type="number" name="salary" step="0.01" min="0" value="<?= e($employee['salary']??'') ?>"></div>
                 <div class="form-group">
                     <label>Salary Type</label>
                     <select name="salary_type">
-                        <?php foreach (['monthly','daily','hourly'] as $t): ?>
-                        <option value="<?= $t ?>" <?= $employee['salary_type']===$t?'selected':'' ?>><?= ucfirst($t) ?></option>
+                        <?php foreach (['monthly','daily','hourly'] as $st): ?>
+                        <option value="<?= $st ?>" <?= ($employee['salary_type']??'')===$st?'selected':'' ?>><?= ucfirst($st) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group full"><label>Notes</label>
-                    <textarea name="notes" style="min-height:48px"><?= e($employee['notes']??'') ?></textarea></div>
+                <div class="form-group full"><label>Notes</label><textarea name="notes" style="min-height:48px"><?= e($employee['notes']??'') ?></textarea></div>
                 <div class="form-group">
                     <label>Status</label>
                     <select name="status">
-                        <?php foreach (['active','inactive','terminated'] as $s): ?>
-                        <option value="<?= $s ?>" <?= $employee['status']===$s?'selected':'' ?>><?= ucfirst($s) ?></option>
+                        <?php foreach (['active','inactive','terminated'] as $st): ?>
+                        <option value="<?= $st ?>" <?= $employee['status']===$st?'selected':'' ?>><?= ucfirst($st) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -307,7 +298,83 @@ ob_start();
         </form>
     </div>
 </div>
+
+<!-- PAY SALARY -->
+<?php if ($employee['salary']): ?>
+<div class="modal-backdrop" id="paySalaryModal">
+    <div class="modal" style="max-width:460px">
+        <div class="modal-title"><i class="fa-solid fa-money-bill-wave" style="color:var(--green)"></i> Pay Salary</div>
+        <form method="POST" action="/books/<?= $book['id'] ?>/employees/<?= $employee['id'] ?>/salary/pay">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <div class="form-grid" style="gap:12px">
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" step="0.01" min="0.01"
+                           value="<?= e($employee['salary']??'') ?>" required>
+                </div>
+                <div class="form-group">
+                    <label>Period (e.g. May 2026)</label>
+                    <input type="text" name="period_label" placeholder="<?= date('F Y') ?>">
+                </div>
+                <div class="form-group">
+                    <label>From</label>
+                    <input type="date" name="period_from">
+                </div>
+                <div class="form-group">
+                    <label>To</label>
+                    <input type="date" name="period_to">
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select name="payment_method">
+                        <option value="cash">Cash</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="mobile_banking">Mobile Banking</option>
+                        <option value="cheque">Cheque</option>
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Note</label>
+                    <input type="text" name="note" placeholder="Optional">
+                </div>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:8px;margin-bottom:0">
+                <i class="fa-solid fa-info-circle"></i> This will also create an entry in Expenses.
+            </p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirm Payment</button>
+            </div>
+        </form>
+    </div>
+</div>
 <?php endif; ?>
+
+<!-- SEND INVITE (for employees without account) -->
+<?php if (!$employee['user_id']): ?>
+<div class="modal-backdrop" id="sendInviteModal">
+    <div class="modal" style="max-width:460px">
+        <div class="modal-title"><i class="fa-solid fa-envelope" style="color:var(--brand)"></i> Send Invitation</div>
+        <form method="POST" action="/books/<?= $book['id'] ?>/employees/<?= $employee['id'] ?>/send-invite">
+            <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+                The user must already have a Byabsayee account. They'll get an in-app notification and email.
+            </p>
+            <div class="form-group">
+                <label>Email Address *</label>
+                <input type="email" name="email" value="<?= e($employee['email'] ?? '') ?>" required
+                       placeholder="their Byabsayee account email">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Send Invitation</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php endif; // isOwner ?>
 
 <script>
 function toggleAll(val) {
@@ -316,17 +383,14 @@ function toggleAll(val) {
         cb.closest('label').classList.toggle('checked', val);
     });
 }
-
 function applyDesigPerms(desigId) {
     if (!desigId) return;
     fetch('/books/<?= $book['id'] ?>/employees/designations/' + desigId + '/permissions')
         .then(r => r.json())
         .then(perms => {
             document.querySelectorAll('.emp-perm').forEach(cb => {
-                const mod    = cb.dataset.mod;
-                const action = cb.dataset.action;
-                const val    = !!(perms[mod] && perms[mod][action]);
-                cb.checked   = val;
+                const val = !!(perms[cb.dataset.mod] && perms[cb.dataset.mod][cb.dataset.action]);
+                cb.checked = val;
                 cb.closest('label').classList.toggle('checked', val);
             });
         }).catch(() => {});

@@ -56,33 +56,42 @@ class EmployeeController
         if (guest()) redirect('/login');
         $book = $this->getBookOrFail($params['id']);
 
-        $employees = Database::query(
-            'SELECT e.*, u.name AS user_name, u.email AS user_email, u.status AS user_status
-             FROM employees e
-             LEFT JOIN users u ON u.id = e.user_id
-             WHERE e.book_id = ? AND e.deleted_at IS NULL
-             ORDER BY e.name ASC',
-            [$book['id']]
-        );
+        $employees = [];
+        try {
+            $employees = Database::query(
+                'SELECT e.*, u.name AS user_name, u.email AS user_email, u.status AS user_status
+                 FROM employees e
+                 LEFT JOIN users u ON u.id = e.user_id
+                 WHERE e.book_id = ? AND e.deleted_at IS NULL
+                 ORDER BY e.name ASC',
+                [$book['id']]
+            );
+        } catch (\Throwable $e) {}
 
-        $designations = Database::query(
-            'SELECT d.*, COUNT(e.id) AS employee_count
-             FROM designations d
-             LEFT JOIN employees e ON e.designation_id = d.id AND e.deleted_at IS NULL
-             WHERE d.book_id = ?
-             GROUP BY d.id ORDER BY d.name',
-            [$book['id']]
-        );
+        $designations = [];
+        try {
+            $designations = Database::query(
+                'SELECT d.*, COUNT(e.id) AS employee_count
+                 FROM designations d
+                 LEFT JOIN employees e ON e.designation_id = d.id AND e.deleted_at IS NULL
+                 WHERE d.book_id = ?
+                 GROUP BY d.id ORDER BY d.name',
+                [$book['id']]
+            );
+        } catch (\Throwable $e) {}
 
-        $pending_invitations = Database::query(
-            'SELECT ei.*, u.name AS inviter_name, uu.name AS invitee_name
-             FROM employee_invitations ei
-             LEFT JOIN users u  ON u.id  = ei.invited_by
-             LEFT JOIN users uu ON uu.id = ei.user_id
-             WHERE ei.book_id = ? AND ei.status = "pending"
-             ORDER BY ei.created_at DESC',
-            [$book['id']]
-        );
+        $pending_invitations = [];
+        try {
+            $pending_invitations = Database::query(
+                'SELECT ei.*, u.name AS inviter_name, uu.name AS invitee_name
+                 FROM employee_invitations ei
+                 LEFT JOIN users u  ON u.id  = ei.invited_by
+                 LEFT JOIN users uu ON uu.id = ei.user_id
+                 WHERE ei.book_id = ? AND ei.status = "pending"
+                 ORDER BY ei.created_at DESC',
+                [$book['id']]
+            );
+        } catch (\Throwable $e) {}
 
         $modules = self::permissionModules();
 
@@ -567,56 +576,89 @@ class EmployeeController
     }
 
     // =========================================================================
-    // NOTIFICATIONS (JSON)  →  GET /books/{id}/notifications
+    // PAY SALARY  →  POST /books/{id}/employees/{employee_id}/salary/pay
     // =========================================================================
-    public function notifications(array $params): void
+    public function paySalary(array $params): void
     {
-        if (guest()) { echo '[]'; exit; }
-        $book = $this->getBookOrFail($params['id']);
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book     = $this->getBookOrFail($params['id']);
+        $employee = $this->getEmployeeOrFail($params['employee_id'], $book['id']);
 
-        $notifs = Database::query(
-            'SELECT * FROM notifications WHERE book_id=? AND user_id=? ORDER BY created_at DESC LIMIT 30',
-            [$book['id'], auth()['id']]
-        );
+        $amount  = (float)($_POST['amount'] ?? 0);
+        $method  = trim($_POST['payment_method'] ?? 'cash');
+        $period  = trim($_POST['period_label'] ?? '');
+        $note    = trim($_POST['note'] ?? '');
+        $from    = trim($_POST['period_from'] ?? '') ?: null;
+        $to      = trim($_POST['period_to']   ?? '') ?: null;
 
-        // Mark all as read
+        if ($amount <= 0) {
+            redirect('/books/'.$book['id'].'/employees/'.$employee['id'], ['error' => 'Amount must be greater than zero.']);
+        }
+
+        // Auto-create expense
+        $expenseId = null;
+        try {
+            $expenseTitle = 'Salary — ' . $employee['name']
+                . ($period ? ' (' . $period . ')' : '');
+
+            Database::run(
+                'INSERT INTO expenses (book_id, title, amount, category, payment_method, date, note, created_by, created_at)
+                 VALUES (?,?,?,?,?,?,?,?,?)',
+                [
+                    $book['id'], $expenseTitle, $amount,
+                    'Salary', $method,
+                    date('Y-m-d'), $note,
+                    auth()['id'], now()
+                ]
+            );
+            $expenseId = Database::lastInsertId();
+        } catch (\Throwable $e) {
+            error_log('[Salary] Expense creation failed: ' . $e->getMessage());
+        }
+
+        // Record salary payment
         Database::run(
-            'UPDATE notifications SET read_at=? WHERE book_id=? AND user_id=? AND read_at IS NULL',
-            [now(), $book['id'], auth()['id']]
+            'INSERT INTO employee_salary_payments
+             (book_id, employee_id, expense_id, amount, period_label, period_from, period_to, payment_method, note, created_by, created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            [
+                $book['id'], $employee['id'], $expenseId,
+                $amount, $period ?: null, $from, $to,
+                $method, $note ?: null, auth()['id'], now()
+            ]
         );
 
-        header('Content-Type: application/json');
-        echo json_encode(array_map(fn($n) => [
-            'id'          => $n['id'],
-            'type'        => $n['type'],
-            'title'       => $n['title'],
-            'body'        => $n['body'],
-            'action_url'  => $n['action_url'],
-            'sender_name' => 'Byabsayee',
-            'created_at'  => $n['created_at'],
-            'read'        => !is_null($n['read_at']),
-        ], $notifs));
-        exit;
+        redirect(
+            '/books/'.$book['id'].'/employees/'.$employee['id'],
+            ['success' => 'Salary of '.format_money($amount).' paid to '.e($employee['name']).'.']
+        );
     }
 
     // =========================================================================
-    // UNREAD COUNT  →  GET /notifications/count
+    // SEND INVITE FOR OFFLINE EMPLOYEE  →  POST /books/{id}/employees/{employee_id}/send-invite
     // =========================================================================
-    public function unreadCount(array $params): void
+    public function sendInviteForEmployee(array $params): void
     {
-        if (guest()) { echo '0'; exit; }
-        $count = Database::row(
-            'SELECT COUNT(*) AS c FROM notifications WHERE user_id=? AND read_at IS NULL',
-            [auth()['id']]
-        );
-        header('Content-Type: application/json');
-        echo json_encode(['count' => (int)($count['c'] ?? 0)]);
-        exit;
-    }
+        if (guest()) redirect('/login');
+        csrf_verify();
+        $book     = $this->getBookOrFail($params['id']);
+        $employee = $this->getEmployeeOrFail($params['employee_id'], $book['id']);
 
-    // =========================================================================
-    // HELPERS
-    // =========================================================================
+        $email = strtolower(trim($_POST['email'] ?? $employee['email'] ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            redirect('/books/'.$book['id'].'/employees/'.$employee['id'], ['error' => 'Valid email address required.']);
+        }
+
+        // Reuse the main invite logic
+        $_POST['email']            = $email;
+        $_POST['designation_id']   = $employee['designation_id'] ?? '';
+        $_POST['designation_name'] = $employee['designation_name'] ?? '';
+        // Copy employee's current permissions to _POST so invite() picks them up
+        // (invite() calls parsePermissionsFromPost which reads $_POST['perm'])
+
+        $this->invite($params);
+    }
     private function parsePermissionsFromPost(): array
     {
         $modules     = self::permissionModules();
@@ -635,35 +677,45 @@ class EmployeeController
             $bookDetails = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
             $bookName    = $bookDetails['business_name'] ?? $book['name'];
             $inviter     = auth();
-            $url         = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $link        = $url . '/invitations/' . $token;
+            $appUrl      = rtrim(getenv('APP_URL') ?: ('http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')), '/');
+            $link        = $appUrl . '/invitations/' . $token;
+            $appName     = getenv('APP_NAME') ?: 'Byabsayee';
 
-            $subject = $inviter['name'] . ' invited you to join "' . $bookName . '" on Byabsayee';
-            $message = "Hi,\n\n"
-                . $inviter['name'] . " has invited you to join \"" . $bookName . "\" on Byabsayee"
-                . ($desigName ? " as " . $desigName : "") . ".\n\n"
-                . "Click the link below to accept or decline:\n"
-                . $link . "\n\n"
-                . "This invitation expires in 7 days.\n\n"
-                . "— The Byabsayee Team";
+            $html = \App\Helpers\Mailer::render('invitation', [
+                'inviterName'  => $inviter['name'],
+                'bookName'     => $bookName,
+                'designation'  => $desigName ?? '',
+                'inviteLink'   => $link,
+                'appName'      => $appName,
+                'appUrl'       => $appUrl,
+                'expiryDate'   => date('F j, Y', strtotime('+7 days')),
+            ]);
 
-            if (function_exists('mail')) {
-                mail($email, $subject, $message, 'From: noreply@byabsayee.com');
-            }
+            \App\Helpers\Mailer::send(
+                $email,
+                $inviter['name'] . ' invited you to join "' . $bookName . '" on ' . $appName,
+                $html
+            );
         } catch (\Throwable $e) {
-            // Email failure is non-fatal
+            error_log('[EmployeeController] Invitation email failed: ' . $e->getMessage());
         }
     }
 
     private function getBookOrFail(string $id): array
     {
-        // Owner check
-        $book = Database::row(
-            'SELECT * FROM books WHERE id=? AND deleted_at IS NULL AND (user_id=? OR EXISTS(
-                SELECT 1 FROM book_members WHERE book_id=books.id AND user_id=? AND status="active"
-            ))',
-            [$id, auth()['id'], auth()['id']]
-        );
+        try {
+            $book = Database::row(
+                'SELECT * FROM books WHERE id=? AND deleted_at IS NULL AND (user_id=? OR EXISTS(
+                    SELECT 1 FROM book_members WHERE book_id=books.id AND user_id=? AND status="active"
+                ))',
+                [$id, auth()['id'], auth()['id']]
+            );
+        } catch (\Throwable $e) {
+            $book = Database::row(
+                'SELECT * FROM books WHERE id=? AND user_id=? AND deleted_at IS NULL',
+                [$id, auth()['id']]
+            );
+        }
         if (!$book) { http_response_code(404); require BASE_PATH.'/views/errors/404.php'; exit; }
         return $book;
     }
