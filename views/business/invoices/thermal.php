@@ -58,7 +58,7 @@ td, th   { padding:1px 2px; }
         Switch to <?= $paperWidth===58?'80':'58' ?>mm
     </a>
     <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>" style="display:inline-block;padding:6px 14px;background:#f0f0f0;border-radius:6px;font-size:12px;text-decoration:none;color:#333">
-        ← Back
+        <i class="fa-solid fa-arrow-left-long"></i> Back
     </a>
 </div>
 
@@ -69,6 +69,12 @@ $phone   = $details['phone'] ?? $book['phone'] ?? '';
 $address = $details['address'] ?? '';
 $sym     = $invoice['currency_symbol'] ?? '৳';
 $party   = $customer ?? $supplier ?? null;
+$inWords = invoiceNumToWords((int)round($total), $curCode) . ' Only';
+$shareUrl = (defined('BASE_PATH') ? (config('url') ?? '') : '') . '/invoice/' . ($invoice['public_token'] ?? '');
+$creator = null;
+if ($invoice['created_by'] ?? null) {
+    $creator = \App\Helpers\Database::row('SELECT id, name, email FROM users WHERE id=?', [$invoice['created_by']]);
+}
 ?>
 
 <!-- Business header -->
@@ -77,7 +83,10 @@ $party   = $customer ?? $supplier ?? null;
 <div class="center" style="font-size:9px"><?= e(str_replace("\n",', ',$address)) ?></div>
 <?php endif; ?>
 <?php if ($phone): ?>
-<div class="center" style="font-size:9px">Tel: <?= e($phone) ?></div>
+<div class="center" style="font-size:9px">Call: <?= e($phone) ?></div>
+<?php endif; ?>
+<?php if ($email): ?>
+<div class="center" style="font-size:9px">Email: <?= e($email) ?></div>
 <?php endif; ?>
 
 <div class="line"></div>
@@ -126,14 +135,26 @@ $party   = $customer ?? $supplier ?? null;
 
 <!-- Totals -->
 <table>
-<?php if ((float)$invoice['discount'] > 0): ?>
-<tr><td>Discount:</td><td class="right">-<?= $sym.number_format($invoice['discount'],0) ?></td></tr>
+<?php if ((float)$invoice['Subtotal'] > 0): ?>
+<tr><td>Subtotal:</td><td class="right">+<?= $sym.number_format($invoice['subtotal'],0) ?></td></tr>
 <?php endif; ?>
 <?php if ((float)($invoice['delivery_charge']??0) > 0): ?>
 <tr><td>Delivery:</td><td class="right">+<?= $sym.number_format($invoice['delivery_charge'],0) ?></td></tr>
 <?php endif; ?>
+<?php if ((float)($invoice['handling_charge']??0) > 0): ?>
+<tr><td>Handling:</td><td class="right">+<?= $sym.number_format($invoice['handling_charge'],0) ?></td></tr>
+<?php endif; ?>
 <?php if ((float)($invoice['tax']??0) > 0): ?>
 <tr><td>Tax:</td><td class="right">+<?= $sym.number_format($invoice['tax'],0) ?></td></tr>
+<?php endif; ?>
+<?php if ((float)$invoice['discount'] > 0): ?>
+<tr><td>Discount:</td><td class="right">-<?= $sym.number_format($invoice['discount'],0) ?></td></tr>
+<?php endif; ?>
+<?php if ((float)$pointsDiscount['points_discount'] > 0): ?>
+<tr><td>Points:</td><td class="right">-<?= $sym.number_format($pointsDiscount,0) ?></td></tr>
+<?php endif; ?>
+<?php if ((float)$couponDiscount['coupon_discount'] > 0): ?>
+<tr><td>Points:</td><td class="right">-<?= $sym.number_format($couponDiscount,0) ?></td></tr>
 <?php endif; ?>
 <?php if ((float)($invoice['rounding']??0) > 0): ?>
 <tr><td>Rounding:</td><td class="right">-<?= $sym.number_format($invoice['rounding'],2) ?></td></tr>
@@ -154,7 +175,12 @@ $party   = $customer ?? $supplier ?? null;
     <tr><td class="bold" style="color:#c00">Due:</td><td class="right bold" style="color:#c00"><?= $sym.number_format($due,0) ?></td></tr>
     <?php endif; ?>
     <?php endif; ?>
+    <tr><td>In Words:</td><td><?= e($inWords) ?></td></tr>
 </table>
+
+<div class="qr">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px;height:70px" alt="QR">
+</div>
 
 <div class="line"></div>
 
@@ -168,7 +194,7 @@ $party   = $customer ?? $supplier ?? null;
 <?php if (!empty($details['footer_note'])): ?>
 <div class="center" style="font-size:8px;margin-top:2px"><?= e($details['footer_note']) ?></div>
 <?php endif; ?>
-<div class="center" style="font-size:8px;margin-top:4px;color:#666">Powered by Byabsayee</div>
+<div class="center" style="font-size:8px;margin-top:4px;color:#666">Generated using Byabsayee by <?= e($creator['name']) ?> at <?= date('d M Y, h:i A', strtotime($invoice['created_at'])) ?></div>
 
 <script>
 // Auto-open print dialog after a short delay (can be disabled by user)

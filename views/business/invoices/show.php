@@ -94,7 +94,7 @@ ob_start();
 <!-- Privilege hint -->
 <?php if (!empty($assignedPrivs) && in_array($invoice['type'], ['sale','pos'])): ?>
 <div style="background:var(--green-bg);border:1px solid #bbf7d0;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--green)">
-    🎫 <strong><?= e($customer['name']) ?></strong> has:
+    <i class="fa-solid fa-ticket"></i> <strong><?= e($customer['name']) ?></strong> has:
     <?php foreach ($assignedPrivs as $priv): ?>
         <strong><?= e($priv['name']) ?></strong>
         (<?= $priv['discount_type']==='percent' ? $priv['discount_value'].'%' : $sym.number_format($priv['discount_value'],2) ?> off)
@@ -117,11 +117,11 @@ ob_start();
                     <?php if ($book['phone'] ?? $details['phone'] ?? ''): ?>
                         <span style="color:var(--text-muted)"><i class="fa-solid fa-phone"></i></span> <?= e($book['phone'] ?? $details['phone']) ?><br>
                     <?php endif; ?>
+                    <?php if ($book['email'] ?? $details['email'] ?? ''): ?>
+                        <span style="color:var(--text-muted)"><i class="fa-regular fa-envelope"></i></span> <?= e($book['email'] ?? $details['email']) ?><br>
+                    <?php endif; ?>
                     <?php if ($book['address'] ?? $details['address'] ?? ''): ?>
                         <span style="color:var(--text-muted)"><i class="fa-solid fa-location-dot"></i></span> <?= e($book['address'] ?? $details['address']) ?>
-                    <?php endif; ?>
-                    <?php if ($book['email'] ?? $details['email'] ?? ''): ?>
-                        <span style="color:var(--text-muted)"><i class="fa-regular fa-envelope"></i></span> <?= e($book['email'] ?? $details['email']) ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -160,7 +160,6 @@ ob_start();
                         <th>ID</th>
                         <th style="text-align:right">Qty</th>
                         <th style="text-align:right">Price</th>
-                        <th style="text-align:right">Disc%</th>
                         <th style="text-align:right">Total</th>
                     </tr>
                 </thead>
@@ -183,7 +182,6 @@ ob_start();
                     </td>
                     <td style="text-align:right" class="td-muted"><?= rtrim(rtrim(number_format($item['qty'],3),'0'),'.') ?></td>
                     <td style="text-align:right"><?= $sym.number_format($item['unit_price'],0) ?></td>
-                    <td style="text-align:right" class="td-muted"><?= $item['discount_pct']>0 ? $item['discount_pct'].'%' : '—' ?></td>
                     <td style="text-align:right;font-weight:600"><?= $sym.number_format($item['line_total'],0) ?></td>
                 </tr>
                 <?php endforeach; ?>
@@ -204,20 +202,6 @@ ob_start();
                     <span style="color:var(--red)">− <?= $sym.number_format($invoice['discount'],0) ?></span>
                 </div>
                 <?php endif; ?>
-                <?php if ($pointsDiscount>0): ?>
-                <div style="display:flex;justify-content:space-between">
-                    <span style="color:var(--text-muted)">Points Discount</span>
-                    <span style="color:var(--red)">− <?= $sym.number_format($pointsDiscount,0) ?></span>
-                </div>
-                <?php endif; ?>
-                <?php if ($couponDiscount>0): ?>
-                <div style="display:flex;justify-content:space-between">
-                    <span style="color:var(--text-muted)">
-                        Coupon<?= $couponCode ? ' <code style="font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--border)">'.e($couponCode).'</code>' : '' ?>
-                    </span>
-                    <span style="color:var(--red)">− <?= $sym.number_format($couponDiscount,0) ?></span>
-                </div>
-                <?php endif; ?>
                 <?php if ($deliveryCharge>0): ?>
                 <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--text-muted)">Delivery</span>
@@ -234,6 +218,20 @@ ob_start();
                 <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--text-muted)">Tax</span>
                     <span>+ <?= $sym.number_format($invoice['tax'],0) ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if ($pointsDiscount>0): ?>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text-muted)">Points Discount</span>
+                    <span style="color:var(--red)">− <?= $sym.number_format($pointsDiscount,0) ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if ($couponDiscount>0): ?>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text-muted)">
+                        Coupon<?= $couponCode ? ' <code style="font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--border)">'.e($couponCode).'</code>' : '' ?>
+                    </span>
+                    <span style="color:var(--red)">− <?= $sym.number_format($couponDiscount,0) ?></span>
                 </div>
                 <?php endif; ?>
                 <?php if ($rounding>0): ?>
@@ -421,13 +419,6 @@ ob_start();
             <?php endif; ?>
             <div class="info-row"><span>Currency</span> <strong><?= e($invoice['currency_code']??'BDT') ?> (<?= e($sym) ?>)</strong></div>
             <?php if ($invoice['theme_color'] ?? ''): ?>
-            <div class="info-row">
-                <span>Theme Color</span>
-                <span style="display:flex;align-items:center;gap:6px">
-                    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:<?= e($invoice['theme_color']) ?>;border:1px solid var(--border)"></span>
-                    <strong><?= e($invoice['theme_color']) ?></strong>
-                </span>
-            </div>
             <?php endif; ?>
         </div>
     </div>
@@ -504,7 +495,7 @@ ob_start();
             <?php endif; ?>
             <div style="margin-top:4px">
                 <a href="/books/<?= $book['id'] ?>/customers/<?= $customer['id'] ?>" class="btn btn-sm btn-secondary" style="width:100%;justify-content:center">
-                    View Customer Profile →
+                    View Customer Profile <i class="fa-solid fa-arrow-right-long"></i>
                 </a>
             </div>
         </div>
@@ -517,7 +508,7 @@ ob_start();
         <p class="card-title">Public Link</p>
         <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Share with customer — no login needed</p>
         <a href="<?= asset('invoice/'.$invoice['public_token']) ?>" target="_blank"
-           class="btn btn-sm btn-secondary" style="width:100%;justify-content:center">🔗 View Public Invoice</a>
+           class="btn btn-sm btn-secondary" style="width:100%;justify-content:center"><i class="fa-solid fa-link"></i> View Public Invoice</a>
     </div>
     <?php endif; ?>
 

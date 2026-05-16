@@ -151,23 +151,23 @@ $inWords = invoiceNumToWords((int)round($total), $curCode) . ' Only';
 <div class="top-bar">
     <h3>Invoice Preview &amp; Print</h3>
     <a href="javascript:void(0)" class="tbtn tbtn-share" onclick="toggleShare()">
-        🔗 Share Link
+        <i class="fa-solid fa-link"></i> Share Link
     </a>
     <?php if (!empty($invoice['public_token'])): ?>
     <div class="share-box" id="shareBox">
         <input type="text" id="shareUrl" value="<?= e($shareUrl) ?>" readonly onclick="this.select()">
-        <button class="tbtn tbtn-share" onclick="copyShareLink()">📋 Copy</button>
+        <button class="tbtn tbtn-share" onclick="copyShareLink()"><i class="fa-solid fa-copy"></i> Copy</button>
         <span id="copyMsg" style="font-size:12px;color:#065f46;display:none">Copied!</span>
     </div>
     <?php endif; ?>
     <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=80" target="_blank" class="tbtn tbtn-ghost">
-        🖨 58/80mm
+        <i class="fa-solid fa-print"></i> 58/80mm
     </a>
     <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>" class="tbtn tbtn-ghost">
-        ← Back
+        <i class="fa-solid fa-left-right-long"></i> Back
     </a>
     <button onclick="window.print()" class="tbtn tbtn-primary">
-        🖨 Print / Save PDF
+        <i class="fa-solid fa-print"></i> Print / Save PDF
     </button>
 </div>
 <?php else: ?>

@@ -142,7 +142,6 @@ ob_start();
                     <th style="padding:6px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);width:90px">Variant</th>
                     <th style="padding:6px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);width:60px;text-align:right">Qty</th>
                     <th style="padding:6px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);width:90px;text-align:right">Price</th>
-                    <th style="padding:6px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);width:55px;text-align:right">Disc%</th>
                     <th style="padding:6px;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);width:90px;text-align:right">Total</th>
                     <th style="border-bottom:1px solid var(--border);width:26px"></th>
                 </tr>
@@ -451,11 +450,6 @@ function addRow(name='', qty=1, price=0, disc=0, pid='', variant='', variants=[]
         <td style="padding:5px 4px">
             <input type="number" name="item_price[]" id="iprice_${i}" value="${price}"
                    min="0" step="0.01" oninput="recalc()"
-                   style="width:100%;padding:5px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;text-align:right;font-family:inherit;outline:none">
-        </td>
-        <td style="padding:5px 4px">
-            <input type="number" name="item_discount[]" id="idisc_${i}" value="${disc}"
-                   min="0" max="100" step="0.01" oninput="recalc()"
                    style="width:100%;padding:5px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;text-align:right;font-family:inherit;outline:none">
         </td>
         <td style="padding:5px 4px;text-align:right;font-weight:600;font-size:12px" id="iline_${i}">0.00</td>
