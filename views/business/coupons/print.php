@@ -88,8 +88,8 @@ body {
     background: #fff;
     position: relative;
     page-break-inside: avoid;
-    margin-left: 1mm;
-    margin-top: 1px;
+    margin-left: 1px;
+    margin-top: 2px;
 }
 
 .coupon-inner {
