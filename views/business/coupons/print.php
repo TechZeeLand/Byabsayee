@@ -88,7 +88,8 @@ body {
     background: #fff;
     position: relative;
     page-break-inside: avoid;
-    margin: 2mm 1mm;
+    margin-left: 1mm;
+    margin-top: 2mm;
 }
 
 .coupon-inner {
@@ -106,7 +107,7 @@ body {
     padding: 0px 10px 5px 10px;
 }
 .coupon-top img {
-    height: 30px;
+    height: 35px;
     width: auto;
     margin: 0px 5px 5px 5px;
 }
@@ -168,7 +169,7 @@ body {
     color: #fff;
     height: 20px;
     width: max-content;
-    padding: 5px 10px 5px 0px;
+    padding: 5px 10px 10px 0px;
     border-radius: 10px;
     margin-left: 2px;
     align-items: center;
