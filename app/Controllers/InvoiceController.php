@@ -356,6 +356,8 @@ class InvoiceController
         $supplier= $invoice['supplier_id'] ? Database::row('SELECT * FROM suppliers WHERE id=?', [$invoice['supplier_id']]) : null;
         $details = Database::row('SELECT * FROM book_business_details WHERE book_id=?', [$book['id']]);
         $paperWidth = (int)($_GET['w'] ?? 80);
+        $total      = (float)$invoice['total'];
+        $curCode    = $invoice['currency_code'] ?? 'BDT';
         require BASE_PATH . '/views/business/invoices/thermal.php';
     }
 

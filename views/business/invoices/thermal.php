@@ -69,9 +69,7 @@ $phone   = $details['phone'] ?? $book['phone'] ?? '';
 $address = $details['address'] ?? '';
 $sym     = $invoice['currency_symbol'] ?? '৳';
 $party   = $customer ?? $supplier ?? null;
-$inWords = function_exists('invoiceNumToWords')
-    ? invoiceNumToWords((int)round($invoice['total']), $invoice['currency_code'] ?? 'BDT') . ' Only'
-    : number_format($invoice['total'], 0) . ' ' . ($invoice['currency_code'] ?? 'BDT') . ' Only';
+$inWords = invoiceNumToWords((int)round($total), $curCode) . ' Only';
 $shareUrl = (defined('BASE_PATH') ? (config('url') ?? '') : '') . '/invoice/' . ($invoice['public_token'] ?? '');
 $creator = null;
 if ($invoice['created_by'] ?? null) {
@@ -178,11 +176,14 @@ $email = $details['email'] ?? $book['email'] ?? '';
     <tr><td class="bold" style="color:#c00">Due:</td><td class="right bold" style="color:#c00"><?= $sym.number_format($due,0) ?></td></tr>
     <?php endif; ?>
     <?php endif; ?>
+    <br>
     <tr><td>In Words:</td><td><?= e($inWords) ?></td></tr>
 </table>
 
+<div class="double"></div>
+
 <div class="qr">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px;height:70px" alt="QR">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px; height:70px margin:0 auto;" alt="QR">
 </div>
 
 <div class="line"></div>
