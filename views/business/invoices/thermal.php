@@ -176,14 +176,13 @@ $email = $details['email'] ?? $book['email'] ?? '';
     <tr><td class="bold" style="color:#c00">Due:</td><td class="right bold" style="color:#c00"><?= $sym.number_format($due,0) ?></td></tr>
     <?php endif; ?>
     <?php endif; ?>
-    <br>
     <tr><td>In Words:</td><td><?= e($inWords) ?></td></tr>
 </table>
 
 <div class="double"></div>
 
 <div class="qr">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px; height:70px margin:0 auto;" alt="QR">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px; height:70px; margin:0 auto; display:block;" alt="QR">
 </div>
 
 <div class="line"></div>

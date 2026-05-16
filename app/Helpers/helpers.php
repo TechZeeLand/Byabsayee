@@ -14,6 +14,24 @@ function config(string $key, mixed $default = null): mixed
     return $value;
 }
 
+function invoiceNumToWords(int $n, string $code = 'BDT'): string {
+    $ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+             'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
+             'Seventeen','Eighteen','Nineteen'];
+    $tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    $cur  = ['BDT'=>'Taka','USD'=>'Dollar','EUR'=>'Euro','GBP'=>'Pound',
+             'INR'=>'Rupee','SAR'=>'Riyal','AED'=>'Dirham'][$code] ?? $code;
+    $conv = function(int $n) use ($ones,$tens,&$conv): string {
+        if ($n<20)       return $ones[$n];
+        if ($n<100)      return $tens[(int)($n/10)].($n%10?' '.$ones[$n%10]:'');
+        if ($n<1000)     return $ones[(int)($n/100)].' Hundred'.($n%100?' '.$conv($n%100):'');
+        if ($n<100000)   return $conv((int)($n/1000)).' Thousand'.($n%1000?' '.$conv($n%1000):'');
+        if ($n<10000000) return $conv((int)($n/100000)).' Lakh'.($n%100000?' '.$conv($n%100000):'');
+        return $conv((int)($n/10000000)).' Crore'.($n%10000000?' '.$conv($n%10000000):'');
+    };
+    return $n===0 ? 'Zero '.$cur : trim($conv($n)).' '.$cur;
+}
+
 function dd(mixed ...$vars): never
 {
     echo '<pre style="background:#1e1e1e;color:#d4d4d4;padding:20px;font-size:13px;overflow:auto">';
