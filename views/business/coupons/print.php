@@ -89,7 +89,7 @@ body {
     position: relative;
     page-break-inside: avoid;
     margin-left: 1mm;
-    margin-top: 2mm;
+    margin-top: 1mm;
 }
 
 .coupon-inner {
