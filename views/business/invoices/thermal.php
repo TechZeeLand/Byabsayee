@@ -75,6 +75,7 @@ $creator = null;
 if ($invoice['created_by'] ?? null) {
     $creator = \App\Helpers\Database::row('SELECT id, name, email FROM users WHERE id=?', [$invoice['created_by']]);
 }
+$email = $details['email'] ?? $book['email'] ?? '';
 ?>
 
 <!-- Business header -->
@@ -135,7 +136,7 @@ if ($invoice['created_by'] ?? null) {
 
 <!-- Totals -->
 <table>
-<?php if ((float)$invoice['Subtotal'] > 0): ?>
+<?php if ((float)$invoice['subtotal'] > 0): ?>
 <tr><td>Subtotal:</td><td class="right">+<?= $sym.number_format($invoice['subtotal'],0) ?></td></tr>
 <?php endif; ?>
 <?php if ((float)($invoice['delivery_charge']??0) > 0): ?>
@@ -150,11 +151,11 @@ if ($invoice['created_by'] ?? null) {
 <?php if ((float)$invoice['discount'] > 0): ?>
 <tr><td>Discount:</td><td class="right">-<?= $sym.number_format($invoice['discount'],0) ?></td></tr>
 <?php endif; ?>
-<?php if ((float)$pointsDiscount['points_discount'] > 0): ?>
-<tr><td>Points:</td><td class="right">-<?= $sym.number_format($pointsDiscount,0) ?></td></tr>
+<?php if ((float)($invoice['points_discount'] ?? 0) > 0): ?>
+<tr><td>Points:</td><td class="right">-<?= $sym.number_format($invoice['points_discount'],0) ?></td></tr>
 <?php endif; ?>
-<?php if ((float)$couponDiscount['coupon_discount'] > 0): ?>
-<tr><td>Points:</td><td class="right">-<?= $sym.number_format($couponDiscount,0) ?></td></tr>
+<?php if ((float)($invoice['coupon_discount'] ?? 0) > 0): ?>
+<tr><td>Coupon:</td><td class="right">-<?= $sym.number_format($invoice['coupon_discount'],0) ?></td></tr>
 <?php endif; ?>
 <?php if ((float)($invoice['rounding']??0) > 0): ?>
 <tr><td>Rounding:</td><td class="right">-<?= $sym.number_format($invoice['rounding'],2) ?></td></tr>
@@ -194,7 +195,7 @@ if ($invoice['created_by'] ?? null) {
 <?php if (!empty($details['footer_note'])): ?>
 <div class="center" style="font-size:8px;margin-top:2px"><?= e($details['footer_note']) ?></div>
 <?php endif; ?>
-<div class="center" style="font-size:8px;margin-top:4px;color:#666">Generated using Byabsayee by <?= e($creator['name']) ?> at <?= date('d M Y, h:i A', strtotime($invoice['created_at'])) ?></div>
+<div class="center" style="font-size:8px;margin-top:4px;color:#666">Generated using Byabsayee<?= $creator ? ' by '.e($creator['name']) : '' ?> at <?= date('d M Y, h:i A', strtotime($invoice['created_at'])) ?></div>
 
 <script>
 // Auto-open print dialog after a short delay (can be disabled by user)

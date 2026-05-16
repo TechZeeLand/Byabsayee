@@ -196,12 +196,6 @@ ob_start();
                     <span style="color:var(--text-muted)">Subtotal</span>
                     <span><?= $sym.number_format($invoice['subtotal'],0) ?></span>
                 </div>
-                <?php if ($invoice['discount']>0): ?>
-                <div style="display:flex;justify-content:space-between">
-                    <span style="color:var(--text-muted)">Discount</span>
-                    <span style="color:var(--red)">− <?= $sym.number_format($invoice['discount'],0) ?></span>
-                </div>
-                <?php endif; ?>
                 <?php if ($deliveryCharge>0): ?>
                 <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--text-muted)">Delivery</span>
@@ -218,6 +212,12 @@ ob_start();
                 <div style="display:flex;justify-content:space-between">
                     <span style="color:var(--text-muted)">Tax</span>
                     <span>+ <?= $sym.number_format($invoice['tax'],0) ?></span>
+                </div>
+                <?php endif; ?>
+                <?php if ($invoice['discount']>0): ?>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text-muted)">Discount</span>
+                    <span style="color:var(--red)">− <?= $sym.number_format($invoice['discount'],0) ?></span>
                 </div>
                 <?php endif; ?>
                 <?php if ($pointsDiscount>0): ?>
