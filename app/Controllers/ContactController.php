@@ -47,7 +47,44 @@ class ContactController
 
         $book = $this->getBookOrFail($params['id']);
 
-        $contacts = Database::query(
+        // Business books get unified contacts view
+        if ($book['type'] === 'business') {
+            $customers = \App\Helpers\Database::query(
+                'SELECT c.*,
+                    COUNT(DISTINCT i.id) AS invoice_count,
+                    COALESCE(SUM(i.total),0) AS total_billed
+                 FROM customers c
+                 LEFT JOIN invoices i ON i.customer_id=c.id AND i.deleted_at IS NULL
+                 WHERE c.book_id=? AND c.deleted_at IS NULL
+                 GROUP BY c.id ORDER BY c.name',
+                [$book['id']]
+            );
+
+            $suppliers = \App\Helpers\Database::query(
+                'SELECT s.*,
+                    COUNT(DISTINCT i.id) AS invoice_count,
+                    COALESCE(SUM(i.total),0) AS total_billed
+                 FROM suppliers s
+                 LEFT JOIN invoices i ON i.supplier_id=s.id AND i.deleted_at IS NULL
+                 WHERE s.book_id=? AND s.deleted_at IS NULL
+                 GROUP BY s.id ORDER BY s.name',
+                [$book['id']]
+            );
+
+            $employees = \App\Helpers\Database::query(
+                'SELECT * FROM employees WHERE book_id=? AND deleted_at IS NULL ORDER BY name',
+                [$book['id']]
+            );
+
+            $activeTab  = $_GET['type'] ?? 'all';
+            $totalCount = count($customers) + count($suppliers) + count($employees);
+
+            require BASE_PATH . '/views/business/contacts/index.php';
+            return;
+        }
+
+        // Personal books: original contacts view
+        $contacts = \App\Helpers\Database::query(
             'SELECT c.*,
                 COUNT(e.id) AS entry_count,
                 COALESCE(SUM(CASE WHEN e.type="in"  THEN e.amount ELSE 0 END),0) AS total_in,
@@ -116,8 +153,10 @@ class ContactController
     private function getBookOrFail(string $id): array
     {
         $book = Database::row(
-            'SELECT * FROM books WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
-            [$id, auth()['id']]
+            'SELECT * FROM books WHERE id = ? AND deleted_at IS NULL AND (user_id = ? OR EXISTS(
+                SELECT 1 FROM book_members WHERE book_id=books.id AND user_id=? AND status="active"
+            ))',
+            [$id, auth()['id'], auth()['id']]
         );
         if (!$book) {
             http_response_code(404);

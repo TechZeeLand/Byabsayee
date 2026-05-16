@@ -19,6 +19,7 @@ use App\Controllers\DebtController;
 use App\Controllers\CouponController;
 use App\Controllers\ReturnController;
 use App\Controllers\ReportsController;
+use App\Controllers\EmployeeController;
 
 // =============================================================================
 // PUBLIC
@@ -163,3 +164,27 @@ $router->post('/books/{id}/coupons/{coupon_id}/toggle',         [CouponControlle
 $router->post('/books/{id}/coupons/{coupon_id}/delete',         [CouponController::class, 'delete']);
 $router->get( '/books/{id}/coupons/print',                      [CouponController::class, 'printCoupons']);
 $router->get( '/books/{id}/coupons/validate',                   [CouponController::class, 'validateAjax']);
+
+// ── Employees ─────────────────────────────────────────────────────────────────
+$router->get( '/books/{id}/employees',                                           [EmployeeController::class, 'index']);
+$router->post('/books/{id}/employees/add',                                       [EmployeeController::class, 'store']);
+$router->post('/books/{id}/employees/invite',                                    [EmployeeController::class, 'invite']);
+$router->get( '/books/{id}/employees/{employee_id}',                             [EmployeeController::class, 'show']);
+$router->post('/books/{id}/employees/{employee_id}/edit',                        [EmployeeController::class, 'update']);
+$router->post('/books/{id}/employees/{employee_id}/delete',                      [EmployeeController::class, 'delete']);
+$router->post('/books/{id}/employees/{employee_id}/permissions',                 [EmployeeController::class, 'updatePermissions']);
+$router->post('/books/{id}/employees/{employee_id}/revoke',                      [EmployeeController::class, 'revokeAccess']);
+$router->post('/books/{id}/employees/{employee_id}/restore',                     [EmployeeController::class, 'restoreAccess']);
+$router->post('/books/{id}/employees/invitations/{inv_id}/cancel',               [EmployeeController::class, 'cancelInvitation']);
+$router->post('/books/{id}/employees/designations/add',                          [EmployeeController::class, 'storeDesignation']);
+$router->post('/books/{id}/employees/designations/{desig_id}/edit',              [EmployeeController::class, 'updateDesignation']);
+$router->post('/books/{id}/employees/designations/{desig_id}/delete',            [EmployeeController::class, 'deleteDesignation']);
+$router->get( '/books/{id}/employees/designations/{desig_id}/permissions',       [EmployeeController::class, 'getDesignationPermissions']);
+
+// ── Invitations ───────────────────────────────────────────────────────────────
+$router->get( '/invitations/{token}',          [EmployeeController::class, 'acceptPage']);
+$router->post('/invitations/{token}/respond',  [EmployeeController::class, 'respondInvitation']);
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+$router->get( '/books/{id}/notifications',     [EmployeeController::class, 'notifications']);
+$router->get( '/notifications/count',          [EmployeeController::class, 'unreadCount']);

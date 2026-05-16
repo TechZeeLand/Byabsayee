@@ -50,6 +50,28 @@ class SupplierController
             [$supplier['id'], $book['id']]
         );
 
+        // Debts for this supplier
+        $debts = [];
+        try {
+            $debts = Database::query(
+                'SELECT * FROM debts WHERE supplier_id=? AND book_id=? ORDER BY created_at DESC',
+                [$supplier['id'], $book['id']]
+            );
+        } catch (\Throwable $e) {}
+
+        // Returns for this supplier
+        $returns = [];
+        try {
+            $returns = Database::query(
+                'SELECT r.*, i.invoice_no AS orig_invoice_no
+                 FROM returns r
+                 LEFT JOIN invoices i ON r.invoice_id = i.id
+                 WHERE r.supplier_id=? AND r.book_id=? AND r.deleted_at IS NULL
+                 ORDER BY r.date DESC',
+                [$supplier['id'], $book['id']]
+            );
+        } catch (\Throwable $e) {}
+
         require BASE_PATH . '/views/business/suppliers/show.php';
     }
 

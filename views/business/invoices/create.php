@@ -124,7 +124,7 @@ ob_start();
     <!-- Product search bar -->
     <div class="card" style="padding:12px">
         <input type="text" id="productSearch"
-               placeholder="🔍  Scan barcode or type product code / name to add…"
+               placeholder="Scan barcode or type product code / name to add…"
                oninput="searchProduct(this.value)"
                autocomplete="off"
                style="width:100%;padding:9px 12px;border:1.5px solid var(--brand);border-radius:8px;font-size:13px;font-family:inherit;outline:none">

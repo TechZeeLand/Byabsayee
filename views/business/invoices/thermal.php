@@ -53,7 +53,7 @@ td, th   { padding:1px 2px; }
 
 <!-- Print controls (hidden on print) -->
 <div class="print-controls" style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap">
-    <button class="print-btn" onclick="window.print()">🖨 Print</button>
+    <button class="print-btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
     <a href="?w=<?= $paperWidth===58?80:58 ?>" style="display:inline-block;padding:6px 14px;background:#f0f0f0;border-radius:6px;font-size:12px;text-decoration:none;color:#333">
         Switch to <?= $paperWidth===58?'80':'58' ?>mm
     </a>
@@ -84,10 +84,10 @@ $email = $details['email'] ?? $book['email'] ?? '';
 <div class="center" style="font-size:9px"><?= e(str_replace("\n",', ',$address)) ?></div>
 <?php endif; ?>
 <?php if ($phone): ?>
-<div class="center" style="font-size:9px">Call: <?= e($phone) ?></div>
+<div class="center" style="font-size:9px"><?= e($phone) ?></div>
 <?php endif; ?>
 <?php if ($email): ?>
-<div class="center" style="font-size:9px">Email: <?= e($email) ?></div>
+<div class="center" style="font-size:9px"><?= e($email) ?></div>
 <?php endif; ?>
 
 <div class="line"></div>
@@ -176,6 +176,7 @@ $email = $details['email'] ?? $book['email'] ?? '';
     <tr><td class="bold" style="color:#c00">Due:</td><td class="right bold" style="color:#c00"><?= $sym.number_format($due,0) ?></td></tr>
     <?php endif; ?>
     <?php endif; ?>
+    <div class="line"></div>
     <tr><td>In Words:</td><td><?= e($inWords) ?></td></tr>
 </table>
 
@@ -185,7 +186,7 @@ $email = $details['email'] ?? $book['email'] ?? '';
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=<?= urlencode($shareUrl) ?>" style="width:70px; height:70px; margin:0 auto; display:block;" alt="QR">
 </div>
 
-<div class="line"></div>
+<div class="double"></div>
 
 <?php if ($invoice['note_customer']): ?>
 <div style="font-size:9px"><?= e($invoice['note_customer']) ?></div>
@@ -197,6 +198,7 @@ $email = $details['email'] ?? $book['email'] ?? '';
 <?php if (!empty($details['footer_note'])): ?>
 <div class="center" style="font-size:8px;margin-top:2px"><?= e($details['footer_note']) ?></div>
 <?php endif; ?>
+<div class="line"></div>
 <div class="center" style="font-size:8px;margin-top:4px;color:#666">Generated using Byabsayee<?= $creator ? ' by '.e($creator['name']) : '' ?> at <?= date('d M Y, h:i A', strtotime($invoice['created_at'])) ?></div>
 
 <script>

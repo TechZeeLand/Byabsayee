@@ -58,11 +58,24 @@ class CustomerController
             [$customer['id'], $book['id']]
         );
 
-        // Dues for this customer (safe — if table missing, shows empty)
+        // Dues for this customer
         $dues = [];
         try {
             $dues = Database::query(
                 'SELECT * FROM dues WHERE customer_id=? AND book_id=? ORDER BY created_at DESC',
+                [$customer['id'], $book['id']]
+            );
+        } catch (\Throwable $e) {}
+
+        // Returns for this customer
+        $returns = [];
+        try {
+            $returns = Database::query(
+                'SELECT r.*, i.invoice_no AS orig_invoice_no
+                 FROM returns r
+                 LEFT JOIN invoices i ON r.invoice_id = i.id
+                 WHERE r.customer_id=? AND r.book_id=? AND r.deleted_at IS NULL
+                 ORDER BY r.date DESC',
                 [$customer['id'], $book['id']]
             );
         } catch (\Throwable $e) {}

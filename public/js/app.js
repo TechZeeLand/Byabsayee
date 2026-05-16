@@ -46,3 +46,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 });
+
+// ── Notification unread badge ─────────────────────────────────────────────────
+(function() {
+    function updateNotifBadge() {
+        fetch('/notifications/count')
+            .then(r => r.ok ? r.json() : {count:0})
+            .then(data => {
+                const count = data.count || 0;
+                document.querySelectorAll('.notif-badge, #mobileNotifBadge').forEach(el => {
+                    if (count > 0) {
+                        el.textContent = count > 99 ? '99+' : count;
+                        el.style.display = 'flex';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                });
+            }).catch(() => {});
+    }
+    // Run on load, then every 60 seconds
+    updateNotifBadge();
+    setInterval(updateNotifBadge, 60000);
+})();

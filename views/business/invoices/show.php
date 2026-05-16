@@ -396,7 +396,7 @@ ob_start();
             <?php if ($due > 0 && $invoice['status'] !== 'cancelled'): ?>
             <button class="btn btn-primary" style="width:100%" data-modal="paymentModal">+ Record Payment</button>
             <?php else: ?>
-            <div style="text-align:center;font-size:13px;color:var(--green);font-weight:500">✓ Fully Paid</div>
+            <div style="text-align:center;font-size:13px;color:var(--green);font-weight:500"><i class="fa-solid fa-check"></i> Fully Paid</div>
             <?php endif; ?>
         </div>
     </div>
