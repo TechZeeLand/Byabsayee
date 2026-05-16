@@ -168,7 +168,7 @@ body {
     color: #fff;
     height: 20px;
     width: max-content;
-    padding: 5px 10px 100px 0px;
+    padding: 5px 10px 20px 0px;
     border-radius: 10px;
     margin-left: 2px;
     align-items: center;
