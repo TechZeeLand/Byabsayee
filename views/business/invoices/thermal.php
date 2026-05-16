@@ -69,7 +69,9 @@ $phone   = $details['phone'] ?? $book['phone'] ?? '';
 $address = $details['address'] ?? '';
 $sym     = $invoice['currency_symbol'] ?? '৳';
 $party   = $customer ?? $supplier ?? null;
-$inWords = invoiceNumToWords((int)round($total), $curCode) . ' Only';
+$inWords = function_exists('invoiceNumToWords')
+    ? invoiceNumToWords((int)round($invoice['total']), $invoice['currency_code'] ?? 'BDT') . ' Only'
+    : number_format($invoice['total'], 0) . ' ' . ($invoice['currency_code'] ?? 'BDT') . ' Only';
 $shareUrl = (defined('BASE_PATH') ? (config('url') ?? '') : '') . '/invoice/' . ($invoice['public_token'] ?? '');
 $creator = null;
 if ($invoice['created_by'] ?? null) {
