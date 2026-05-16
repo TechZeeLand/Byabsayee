@@ -71,9 +71,9 @@ ob_start();
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/pdf"
-           class="btn btn-primary" target="_blank">🖨 Print / PDF</a>
+           class="btn btn-primary" target="_blank"><i class="fa-solid fa-print"></i> Print / PDF</a>
         <a href="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/thermal?w=58"
-           class="btn btn-secondary" target="_blank">🖨 58/80mm</a>
+           class="btn btn-secondary" target="_blank"><i class="fa-solid fa-print"></i> 58/80mm</a>
         <?php if ($invoice['status'] === 'draft'): ?>
         <form method="POST" action="/books/<?= $book['id'] ?>/invoices/<?= $invoice['id'] ?>/sent">
             <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
@@ -115,10 +115,13 @@ ob_start();
                 <div style="font-size:13px;line-height:1.9">
                     <strong><?= e($details['business_name'] ?? $book['name']) ?></strong><br>
                     <?php if ($book['phone'] ?? $details['phone'] ?? ''): ?>
-                        <span style="color:var(--text-muted)">📞</span> <?= e($book['phone'] ?? $details['phone']) ?><br>
+                        <span style="color:var(--text-muted)"><i class="fa-solid fa-phone"></i></span> <?= e($book['phone'] ?? $details['phone']) ?><br>
                     <?php endif; ?>
                     <?php if ($book['address'] ?? $details['address'] ?? ''): ?>
-                        <span style="color:var(--text-muted)">📍</span> <?= e($book['address'] ?? $details['address']) ?>
+                        <span style="color:var(--text-muted)"><i class="fa-solid fa-location-dot"></i></span> <?= e($book['address'] ?? $details['address']) ?>
+                    <?php endif; ?>
+                    <?php if ($book['email'] ?? $details['email'] ?? ''): ?>
+                        <span style="color:var(--text-muted)"><i class="fa-regular fa-envelope"></i></span> <?= e($book['email'] ?? $details['email']) ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -129,13 +132,13 @@ ob_start();
                 <div style="font-size:13px;line-height:1.9">
                     <?php if ($customer): ?>
                         <strong><?= e($customer['name']) ?></strong><br>
-                        <?php if ($customer['phone']): ?><span style="color:var(--text-muted)">📞</span> <?= e($customer['phone']) ?><br><?php endif; ?>
-                        <?php if ($customer['email'] ?? ''): ?><span style="color:var(--text-muted)">✉️</span> <?= e($customer['email']) ?><br><?php endif; ?>
-                        <?php if ($customer['address']): ?><span style="color:var(--text-muted)">📍</span> <?= e($customer['address']) ?><?php endif; ?>
+                        <?php if ($customer['phone']): ?><span style="color:var(--text-muted)"><i class="fa-solid fa-phone"></i></span> <?= e($customer['phone']) ?><br><?php endif; ?>
+                        <?php if ($customer['email'] ?? ''): ?><span style="color:var(--text-muted)"><i class="fa-regular fa-envelope"></i></span> <?= e($customer['email']) ?><br><?php endif; ?>
+                        <?php if ($customer['address']): ?><span style="color:var(--text-muted)"><i class="fa-solid fa-location-dot"></i></span> <?= e($customer['address']) ?><?php endif; ?>
                     <?php elseif ($supplier): ?>
                         <strong><?= e($supplier['name']) ?></strong><br>
                         <?php if ($supplier['company']): ?><?= e($supplier['company']) ?><br><?php endif; ?>
-                        <?php if ($supplier['phone']): ?><span style="color:var(--text-muted)">📞</span> <?= e($supplier['phone']) ?><?php endif; ?>
+                        <?php if ($supplier['phone']): ?><span style="color:var(--text-muted)"><i class="fa-solid fa-phone"></i></span> <?= e($supplier['phone']) ?><?php endif; ?>
                     <?php else: ?>
                         <span style="color:var(--text-muted)">Walk-in Customer</span>
                     <?php endif; ?>
