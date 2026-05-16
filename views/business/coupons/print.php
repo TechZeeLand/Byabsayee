@@ -88,7 +88,7 @@ body {
     background: #fff;
     position: relative;
     page-break-inside: avoid;
-    margin: 2px 1px;
+    margin: 2mm 1mm;
 }
 
 .coupon-inner {
@@ -211,6 +211,7 @@ body {
         padding: 5mm;
         width: 100%;
     }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 @page { size: A4; margin: 0; }
 </style>
@@ -225,7 +226,7 @@ body {
         <input type="number" id="copiesInput" class="ctrl-input" value="1" min="1" max="21">
     </label>
 
-    <button class="btn-print" onclick="doPrint()"><i class="fa-solid fa-print"> Print</button>
+    <button class="btn-print" onclick="doPrint()"><i class="fa-solid fa-print"></i> Print</button>
     <a href="/books/<?= $book['id'] ?>/coupons" class="btn-back">← Back</a>
 </div>
 
