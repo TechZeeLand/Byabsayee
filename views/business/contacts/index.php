@@ -90,6 +90,26 @@ $typeIcons  = ['customer'=>'fa-users','supplier'=>'fa-user-tie','employee'=>'fa-
 ?>
 
 <?php if (empty($allContacts)): ?>
+<!-- LM Controls -->
+<div class="lm-controls" style="margin-bottom:12px">
+    <div class="lm-search-wrap" style="max-width:300px">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="conTableSearch" placeholder="Search name, phone, email…">
+        <button class="lm-search-clear" id="conTableClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="conTableSort">
+        <option value="az">Name A–Z</option>
+        <option value="za">Name Z–A</option>
+        <option value="amt-desc">Most Business</option>
+    </select>
+    <select class="lm-select" id="conTablePerPage">
+        <option value="20">20 per page</option>
+        <option value="50">50 per page</option>
+        <option value="100">100 per page</option>
+        <option value="all">All</option>
+    </select>
+</div>
+
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">📋</div>
@@ -142,6 +162,7 @@ $typeIcons  = ['customer'=>'fa-users','supplier'=>'fa-user-tie','employee'=>'fa-
         </tbody>
     </table>
 </div>
+<div id="conTablePager"></div>
 <?php endif; ?>
 
 <script>

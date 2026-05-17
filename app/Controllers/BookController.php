@@ -79,6 +79,25 @@ class BookController
                 Database::run('INSERT INTO book_currencies (book_id,code,symbol,name,is_default,sort_order) VALUES (?,?,?,?,1,0)',
                     [$bookId,'BDT','৳','Bangladeshi Taka']);
             }
+
+            // Auto-add book creator as Owner employee
+            $user = auth();
+            try {
+                $alreadyExists = Database::row(
+                    'SELECT id FROM employees WHERE book_id=? AND user_id=? AND deleted_at IS NULL',
+                    [$bookId, $user['id']]
+                );
+                if (!$alreadyExists) {
+                    Database::run(
+                        'INSERT INTO employees (book_id, user_id, name, email, designation_name, status, join_date, created_at)
+                         VALUES (?,?,?,?,?,?,?,?)',
+                        [$bookId, $user['id'], $user['name'], $user['email'] ?? null,
+                         'Owner', 'active', date('Y-m-d'), now()]
+                    );
+                }
+            } catch (\Throwable $e) {
+                // employees.designation_name may not exist yet — silently continue
+            }
         }
 
         redirect('/books/'.$bookId, ['success' => 'Book created!']);

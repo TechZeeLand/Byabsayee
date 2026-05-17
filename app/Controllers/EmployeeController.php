@@ -596,23 +596,37 @@ class EmployeeController
             redirect('/books/'.$book['id'].'/employees/'.$employee['id'], ['error' => 'Amount must be greater than zero.']);
         }
 
-        // Auto-create expense
+        // Auto-create expense (fix: use correct column names expense_date, category_id)
         $expenseId = null;
         try {
             $expenseTitle = 'Salary — ' . $employee['name']
                 . ($period ? ' (' . $period . ')' : '');
 
+            // Find or create Salary category
+            $salaryCat = Database::row(
+                'SELECT id FROM expense_categories WHERE book_id=? AND name="Salary" LIMIT 1',
+                [$book['id']]
+            );
+            if (!$salaryCat) {
+                Database::run(
+                    'INSERT INTO expense_categories (book_id, name, icon) VALUES (?,?,?)',
+                    [$book['id'], 'Salary', 'fa-money-bill-wave']
+                );
+                $catId = Database::lastId();
+            } else {
+                $catId = $salaryCat['id'];
+            }
+
             Database::run(
-                'INSERT INTO expenses (book_id, title, amount, category, payment_method, date, note, created_by, created_at)
+                'INSERT INTO expenses (book_id, category_id, title, amount, expense_date, paid_to, note, created_by, created_at)
                  VALUES (?,?,?,?,?,?,?,?,?)',
                 [
-                    $book['id'], $expenseTitle, $amount,
-                    'Salary', $method,
-                    date('Y-m-d'), $note,
+                    $book['id'], $catId, $expenseTitle, $amount,
+                    date('Y-m-d'), $employee['name'], $note ?: null,
                     auth()['id'], now()
                 ]
             );
-            $expenseId = Database::lastInsertId();
+            $expenseId = Database::lastId();
         } catch (\Throwable $e) {
             error_log('[Salary] Expense creation failed: ' . $e->getMessage());
         }

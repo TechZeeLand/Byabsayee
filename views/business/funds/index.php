@@ -41,6 +41,27 @@ ob_start();
     </div>
 </div>
 
+<!-- Controls -->
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="fundsSearch" placeholder="Search title, note…">
+        <button class="lm-search-clear" id="fundsClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="fundsSort">
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="amt-desc">Most Amount</option>
+        <option value="amt-asc">Least Amount</option>
+    </select>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Type:</span>
+    <button class="btn btn-sm btn-primary" data-fuf="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-fuf="in">Added</button>
+    <button class="btn btn-sm btn-secondary" data-fuf="out">Withdrawn</button>
+</div>
+
 <!-- Transactions table -->
 <?php if (empty($transactions)): ?>
 <div class="table-wrap">
@@ -52,10 +73,10 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="table-wrap">
-    <table>
+    <table id="fundsTable">
         <thead>
             <tr>
-                <th>Date</th>
+                <th data-sort="0">Date</th>
                 <th>Source / Reason</th>
                 <th>Type</th>
                 <th>Amount</th>
@@ -65,7 +86,7 @@ ob_start();
         </thead>
         <tbody>
         <?php foreach ($transactions as $tx): ?>
-        <tr>
+        <tr data-type="<?= $tx['type'] ?>" data-date="<?= $tx['fund_date'] ?>">
             <td class="td-muted" style="white-space:nowrap">
                 <?= format_date($tx['fund_date']) ?>
             </td>
@@ -106,6 +127,7 @@ ob_start();
         </tbody>
     </table>
 </div>
+<div id="fundsPager"></div>
 <?php endif; ?>
 
 
@@ -234,4 +256,47 @@ function openFundEdit(id, type, source, amount, date, note) {
 }
 </script>
 
+
+<script>
+(function(){
+var allRows=[],typeF='all',searchQ='',sortKey='date-desc',perPage=20,curPage=1;
+function init(){
+    allRows=Array.from(document.querySelectorAll('#fundsTable tbody tr'));
+    var si=document.getElementById('fundsSearch'),sc=document.getElementById('fundsClear');
+    if(si){si.addEventListener('input',function(){searchQ=this.value.toLowerCase().trim();sc.classList.toggle('visible',searchQ.length>0);curPage=1;render();});sc.addEventListener('click',function(){si.value='';searchQ='';sc.classList.remove('visible');curPage=1;render();});}
+    var ss=document.getElementById('fundsSort');if(ss)ss.addEventListener('change',function(){sortKey=this.value;curPage=1;render();});
+    document.querySelectorAll('[data-fuf]').forEach(function(b){b.addEventListener('click',function(){typeF=this.getAttribute('data-fuf');document.querySelectorAll('[data-fuf]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');});this.classList.add('btn-primary');this.classList.remove('btn-secondary');curPage=1;render();});});
+    render();
+}
+function td(r,i){var c=r.querySelectorAll('td')[i];return c?c.textContent.trim():'';}
+function parseD(r){return new Date(r.getAttribute('data-date')||0);}
+function render(){
+    var f=allRows.filter(function(row){
+        if(typeF!=='all'&&row.getAttribute('data-type')!==typeF)return false;
+        if(searchQ&&row.textContent.toLowerCase().indexOf(searchQ)===-1)return false;
+        return true;
+    });
+    f.sort(function(a,b){
+        if(sortKey==='date-desc')return parseD(b)-parseD(a);
+        if(sortKey==='date-asc')return parseD(a)-parseD(b);
+        var na=parseFloat(td(a,3).replace(/[^0-9.]/g,'')||0),nb=parseFloat(td(b,3).replace(/[^0-9.]/g,'')||0);
+        if(sortKey==='amt-desc')return nb-na;if(sortKey==='amt-asc')return na-nb;
+        return 0;
+    });
+    var pp=perPage==='all'?Infinity:parseInt(perPage),total=f.length,tpg=pp===Infinity?1:Math.max(1,Math.ceil(total/pp));
+    if(curPage>tpg)curPage=tpg;if(curPage<1)curPage=1;
+    var s=pp===Infinity?0:(curPage-1)*pp,e=pp===Infinity?total:Math.min(s+pp,total);
+    var tbody=document.querySelector('#fundsTable tbody'),colC=document.querySelector('#fundsTable thead tr').children.length;
+    while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
+    if(f.length===0){var nr=document.createElement('tr');nr.className='lm-no-results';var nd=document.createElement('td');nd.setAttribute('colspan',colC);nd.textContent='No fund entries match.';nr.appendChild(nd);tbody.appendChild(nr);}
+    else{var lastM=null;f.slice(s,e).forEach(function(row){
+        var d=parseD(row);if(!isNaN(d)){var mk=d.getFullYear()+'-'+d.getMonth();if(mk!==lastM){lastM=mk;var sep=document.createElement('tr');sep.className='month-sep';var std=document.createElement('td');std.setAttribute('colspan',colC);std.textContent=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});sep.appendChild(std);tbody.appendChild(sep);}}
+        tbody.appendChild(row);
+    });}
+    renderPager(document.getElementById('fundsPager'),total,tpg,s,e,pp);
+}
+function renderPager(el,total,tpg,s,e,pp){if(!el)return;el.innerHTML='';var wrap=document.createElement('div');wrap.className='lm-pagination';var info=document.createElement('div');info.className='lm-page-info';info.textContent=total===0?'No results':pp===Infinity?'Showing all '+total+' records':'Showing '+(s+1)+'\u2013'+e+' of '+total;wrap.appendChild(info);if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}if(curPage>1)pages.appendChild(mkB('\u2039',curPage-1));var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('\u2026');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('\u2026');ns.push(tpg);}ns.forEach(function(p){var b=mkB(p,p==='\u2026'?0:p);if(p==='\u2026')b.classList.add('lm-ellipsis');pages.appendChild(b);});if(curPage<tpg)pages.appendChild(mkB('\u203a',curPage+1));wrap.appendChild(pages);}var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';[20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));wrap.appendChild(ppW);el.appendChild(wrap);}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

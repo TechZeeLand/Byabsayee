@@ -87,6 +87,28 @@ ob_start();
 
 <!-- EMPLOYEES TABLE -->
 <?php if (empty($employees)): ?>
+<!-- LM Controls -->
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="empTableSearch" placeholder="Search name, designation, department…">
+        <button class="lm-search-clear" id="empTableClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="empTableSort">
+        <option value="az">Name A–Z</option>
+        <option value="za">Name Z–A</option>
+        <option value="amt-desc">Salary High–Low</option>
+        <option value="amt-asc">Salary Low–High</option>
+    </select>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Status:</span>
+    <button class="btn btn-sm btn-primary" data-lmf="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="active">Active</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="inactive">Inactive</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="on_leave">On Leave</button>
+</div>
+
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">👥</div>
@@ -106,7 +128,7 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="table-wrap">
-    <table>
+    <table id="empTable">
         <thead>
             <tr>
                 <th>Name</th>
@@ -133,7 +155,18 @@ ob_start();
                     <span class="badge badge-green" style="font-size:10px;margin-left:4px">Has Login</span>
                 <?php endif; ?>
             </td>
-            <td><?= $emp['designation_name'] ? '<span class="badge badge-blue">'.e($emp['designation_name']).'</span>' : '<span class="td-muted">—</span>' ?></td>
+            <td>
+                <?php if ($emp['user_id'] == $book['user_id']): ?>
+                    <span class="badge badge-owner"><i class="fa-solid fa-crown"></i> Owner</span>
+                    <?php if ($emp['designation_name'] && strtolower($emp['designation_name']) !== 'owner'): ?>
+                    <span class="badge badge-blue" style="margin-left:4px"><?= e($emp['designation_name']) ?></span>
+                    <?php endif; ?>
+                <?php elseif ($emp['designation_name']): ?>
+                    <span class="badge badge-blue"><?= e($emp['designation_name']) ?></span>
+                <?php else: ?>
+                    <span class="td-muted">—</span>
+                <?php endif; ?>
+            </td>
             <td class="td-muted"><?= e($emp['department'] ?? '—') ?></td>
             <td class="td-muted">
                 <?php if ($emp['phone']): ?><div><?= e($emp['phone']) ?></div><?php endif; ?>
@@ -155,6 +188,7 @@ ob_start();
         </tbody>
     </table>
 </div>
+<div id="empTablePager"></div>
 <?php endif; ?>
 
 <!-- ========== MODALS ========== -->

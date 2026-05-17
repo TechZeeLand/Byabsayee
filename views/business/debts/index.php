@@ -71,6 +71,27 @@ ob_start();
 
 <!-- Debts -->
 <?php if (empty($debts)): ?>
+<!-- LM Controls -->
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="debtsTableSearch" placeholder="Search creditor, note…">
+        <button class="lm-search-clear" id="debtsTableClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="debtsTableSort">
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="amt-desc">Most Amount</option>
+        <option value="amt-asc">Least Amount</option>
+    </select>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Status:</span>
+    <button class="btn btn-sm btn-primary" data-lmf="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="unpaid">Unpaid</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="partial">Partial</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="paid">Paid</button>
+</div>
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon"><i class="fa-solid fa-file-circle-minus"></i></div>
@@ -80,7 +101,7 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="table-wrap">
-    <table>
+    <table id="debtsTable">
         <thead>
             <tr>
                 <th>Title</th>
@@ -105,7 +126,7 @@ ob_start();
             ];
             [$badgeClass, $badgeLabel] = $statusMap[$debt['status']] ?? ['badge-gray', ucfirst($debt['status'])];
         ?>
-        <tr>
+        <tr data-date="<?= $debt['due_date'] ?? '' ?>" data-filter="<?= e($debt['status']) ?>">
             <td>
                 <div style="font-weight:600"><?= e($debt['title']) ?></div>
                 <?php if (!empty($debt['invoice_id'])): ?>
@@ -211,6 +232,7 @@ ob_start();
     </table>
 </div>
 <?php endif; ?>
+<div id="debtsPager"></div>
 
 
 <!-- ══ ADD DEBT MODAL ══ -->
@@ -367,4 +389,49 @@ function openDebtEdit(id, title, party, amount, dueDate, note) {
 }
 </script>
 
+
+<script>
+(function(){
+var allRows=[],filterF='all',searchQ='',sortKey='date-desc',perPage=20,curPage=1;
+function init(){
+    allRows=Array.from(document.querySelectorAll('#debtsTable tbody tr'));
+    var si=document.getElementById('debtsTableSearch'),sc=document.getElementById('debtsTableClear');
+    if(si){si.addEventListener('input',function(){searchQ=this.value.toLowerCase().trim();sc.classList.toggle('visible',searchQ.length>0);curPage=1;render();});sc.addEventListener('click',function(){si.value='';searchQ='';sc.classList.remove('visible');curPage=1;render();});}
+    var ss=document.getElementById('debtsTableSort');if(ss)ss.addEventListener('change',function(){sortKey=this.value;curPage=1;render();});
+    document.querySelectorAll('[data-lmf]').forEach(function(b){b.addEventListener('click',function(){filterF=this.getAttribute('data-lmf');document.querySelectorAll('[data-lmf]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');});this.classList.add('btn-primary');this.classList.remove('btn-secondary');curPage=1;render();});}); 
+    render();
+}
+function parseD(r){var v=r.getAttribute('data-date');return v?new Date(v):new Date(0);}
+function getAmt(r){for(var i=2;i<8;i++){var c=r.querySelectorAll('td')[i];if(c){var n=parseFloat(c.textContent.replace(/[^0-9.]/g,''));if(!isNaN(n)&&n>0)return n;}}return 0;}
+function render(){
+    var f=allRows.filter(function(row){
+        if(filterF!=='all'){var rf=row.getAttribute('data-filter')||'';if(rf.split(',').map(function(s){return s.trim();}).indexOf(filterF)===-1)return false;}
+        if(searchQ&&row.textContent.toLowerCase().indexOf(searchQ)===-1)return false;
+        return true;
+    });
+    f.sort(function(a,b){
+        var k=sortKey;
+        if(k==='date-desc')return parseD(b)-parseD(a);if(k==='date-asc')return parseD(a)-parseD(b);
+        if(k==='amt-desc')return getAmt(b)-getAmt(a);if(k==='amt-asc')return getAmt(a)-getAmt(b);
+        var ta=a.textContent.trim(),tb=b.textContent.trim();
+        if(k==='az')return ta.localeCompare(tb);if(k==='za')return tb.localeCompare(ta);
+        return 0;
+    });
+    var pp=perPage==='all'?Infinity:parseInt(perPage),total=f.length,tpg=pp===Infinity?1:Math.max(1,Math.ceil(total/pp));
+    if(curPage>tpg)curPage=tpg;if(curPage<1)curPage=1;
+    var s=pp===Infinity?0:(curPage-1)*pp,e2=pp===Infinity?total:Math.min(s+pp,total);
+    var tbody=document.querySelector('#debtsTable tbody'),colC=(document.querySelector('#debtsTable thead tr')||{}).children.length||6;
+    while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
+    if(f.length===0){var nr=document.createElement('tr');nr.className='lm-no-results';var nd=document.createElement('td');nd.setAttribute('colspan',colC);nd.textContent='No records match.';nr.appendChild(nd);tbody.appendChild(nr);}
+    else{var lastM=null;f.slice(s,e2).forEach(function(row){
+        var d=parseD(row);
+        if(d.getTime()>0){var mk=d.getFullYear()+'-'+d.getMonth();if(mk!==lastM){lastM=mk;var sep=document.createElement('tr');sep.className='month-sep';var std=document.createElement('td');std.setAttribute('colspan',colC);std.textContent=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});sep.appendChild(std);tbody.appendChild(sep);}}
+        tbody.appendChild(row);
+    });}
+    renderPager(document.getElementById('debtsPager'),total,tpg,s,e2,pp);
+}
+function renderPager(el,total,tpg,s,e2,pp){if(!el)return;el.innerHTML='';var wrap=document.createElement('div');wrap.className='lm-pagination';var info=document.createElement('div');info.className='lm-page-info';info.textContent=total===0?'No results':pp===Infinity?'All '+total+' records':'Showing '+(s+1)+'–'+e2+' of '+total;wrap.appendChild(info);if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}if(curPage>1)pages.appendChild(mkB('‹',curPage-1));var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('…');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('…');ns.push(tpg);}ns.forEach(function(p){var b=mkB(p,p==='…'?0:p);if(p==='…')b.classList.add('lm-ellipsis');pages.appendChild(b);});if(curPage<tpg)pages.appendChild(mkB('›',curPage+1));wrap.appendChild(pages);}var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';[20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));wrap.appendChild(ppW);el.appendChild(wrap);}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

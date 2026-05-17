@@ -30,28 +30,36 @@ ob_start();
     <div class="stat-card"><div class="stat-label">Out of Stock</div><div class="stat-value <?= $summary['out_of_stock']>0?'red':'green' ?>"><?= $summary['out_of_stock'] ?></div></div>
 </div>
 
-<!-- Filters -->
-<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-    <form method="GET" style="display:flex;gap:8px;flex:1;min-width:200px">
-        <input type="hidden" name="filter" value="<?= e($_GET['filter']??'all') ?>">
-        <input type="text" name="q" value="<?= e($_GET['q']??'') ?>"
-               placeholder="Search by name, code, barcode…"
-               style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;flex:1;outline:none">
-        <button type="submit" class="btn btn-sm btn-secondary">Search</button>
-    </form>
+<!-- Controls -->
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="prodSearch" placeholder="Search name, code, barcode…">
+        <button class="lm-search-clear" id="prodClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="prodSort" title="Sort products">
+        <option value="name-asc">Name A–Z</option>
+        <option value="name-desc">Name Z–A</option>
+        <option value="stock-desc">Stock High–Low</option>
+        <option value="stock-asc">Stock Low–High</option>
+        <option value="sell-desc">Price High–Low</option>
+        <option value="sell-asc">Price Low–High</option>
+    </select>
     <?php if (!empty($categories)): ?>
-    <select onchange="window.location.href='?cat='+this.value"
-            style="padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none">
+    <select class="lm-select" id="prodCat" onchange="window.location.href='?cat='+this.value" title="Filter by category">
         <option value="0" <?= empty($_GET['cat'])?'selected':'' ?>>All Categories</option>
         <?php foreach ($categories as $cat): ?>
         <option value="<?= $cat['id'] ?>" <?= (($_GET['cat']??0)==$cat['id'])?'selected':'' ?>><?= e($cat['name']) ?></option>
         <?php endforeach; ?>
     </select>
     <?php endif; ?>
-    <?php $f=$_GET['filter']??'all'; ?>
-    <a href="?filter=all" class="btn btn-sm btn-secondary <?= $f==='all'?'btn-primary':'' ?>">All</a>
-    <a href="?filter=low" class="btn btn-sm btn-secondary" style="color:var(--amber)">Low Stock</a>
-    <a href="?filter=out" class="btn btn-sm btn-secondary" style="color:var(--red)">Out of Stock</a>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Stock:</span>
+    <button class="btn btn-sm btn-primary" data-pf="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-pf="ok">In Stock</button>
+    <button class="btn btn-sm btn-secondary" data-pf="low">Low Stock</button>
+    <button class="btn btn-sm btn-secondary" data-pf="out">Out of Stock</button>
 </div>
 
 <?php if (empty($products)): ?>
@@ -64,10 +72,10 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="table-wrap">
-    <table>
+    <table id="prodTable">
         <thead>
             <tr>
-                <th>Code</th>
+                <th data-sort="0">Code</th>
                 <th>Product</th>
                 <th>Category</th>
                 <th style="text-align:right">Buy</th>
@@ -89,7 +97,7 @@ ob_start();
                 'SELECT * FROM product_variants WHERE product_id=? ORDER BY label,value', [$p['id']]
             );
         ?>
-        <tr>
+        <tr data-stock="<?= $stockStatus['label']=== 'Out'?'out':($stockStatus['label']=== 'Low'?'low':'ok') ?>">
             <td>
                 <span style="font-family:monospace;font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;border:1px solid var(--border)">
                     <?= e($p['product_code'] ?? 'PRD-?') ?>
@@ -159,6 +167,7 @@ ob_start();
         </tbody>
     </table>
 </div>
+<div id="prodPager"></div>
 <?php endif; ?>
 
 <!-- ══ ADD CATEGORY MODAL ══ -->
@@ -454,6 +463,69 @@ function addVariantRow(containerId, label='', value='') {
 function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+</script>
+
+
+<script>
+(function(){
+    var allRows = [], stockF = 'all', searchQ = '', sortKey = 'name-asc', perPage = 20, curPage = 1;
+    function init() {
+        allRows = Array.from(document.querySelectorAll('#prodTable tbody tr'));
+        var si = document.getElementById('prodSearch'), sc = document.getElementById('prodClear');
+        if(si){ si.addEventListener('input',function(){ searchQ=this.value.toLowerCase().trim(); sc.classList.toggle('visible',searchQ.length>0); curPage=1; render(); }); sc.addEventListener('click',function(){ si.value='';searchQ='';sc.classList.remove('visible');curPage=1;render(); }); }
+        var ss = document.getElementById('prodSort'); if(ss) ss.addEventListener('change',function(){ sortKey=this.value;curPage=1;render(); });
+        document.querySelectorAll('[data-pf]').forEach(function(b){ b.addEventListener('click',function(){ stockF=this.getAttribute('data-pf'); document.querySelectorAll('[data-pf]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');}); this.classList.add('btn-primary');this.classList.remove('btn-secondary'); curPage=1;render(); }); });
+        render();
+    }
+    function render() {
+        var f = allRows.filter(function(row){
+            if(stockF!=='all' && row.getAttribute('data-stock')!==stockF) return false;
+            if(searchQ && row.textContent.toLowerCase().indexOf(searchQ)===-1) return false;
+            return true;
+        });
+        f.sort(function(a,b){
+            function td(r,i){var c=r.querySelectorAll('td')[i];return c?c.textContent.trim():'';}
+            if(sortKey==='name-asc')  return td(a,1).localeCompare(td(b,1));
+            if(sortKey==='name-desc') return td(b,1).localeCompare(td(a,1));
+            var sa=parseFloat(td(a,5).replace(/[^0-9.]/g,'')||0), sb=parseFloat(td(b,5).replace(/[^0-9.]/g,'')||0);
+            if(sortKey==='stock-desc') return sb-sa; if(sortKey==='stock-asc') return sa-sb;
+            var pa=parseFloat(td(a,4).replace(/[^0-9.]/g,'')||0), pb=parseFloat(td(b,4).replace(/[^0-9.]/g,'')||0);
+            if(sortKey==='sell-desc') return pb-pa; if(sortKey==='sell-asc') return pa-pb;
+            return 0;
+        });
+        var pp=perPage==='all'?Infinity:parseInt(perPage), total=f.length;
+        var tpg=pp===Infinity?1:Math.max(1,Math.ceil(total/pp));
+        if(curPage>tpg)curPage=tpg; if(curPage<1)curPage=1;
+        var s=pp===Infinity?0:(curPage-1)*pp, e=pp===Infinity?total:Math.min(s+pp,total);
+        var tbody=document.querySelector('#prodTable tbody'), colC=document.querySelector('#prodTable thead tr').children.length;
+        while(tbody.firstChild) tbody.removeChild(tbody.firstChild);
+        if(f.length===0){var nr=document.createElement('tr');nr.className='lm-no-results';var nd=document.createElement('td');nd.setAttribute('colspan',colC);nd.textContent='No products match.';nr.appendChild(nd);tbody.appendChild(nr);}
+        else f.slice(s,e).forEach(function(r){tbody.appendChild(r);});
+        renderPager(document.getElementById('prodPager'),total,tpg,s,e,pp);
+    }
+    function renderPager(el,total,tpg,s,e,pp){
+        if(!el)return; el.innerHTML='';
+        var wrap=document.createElement('div');wrap.className='lm-pagination';
+        var info=document.createElement('div');info.className='lm-page-info';
+        info.textContent=total===0?'No results':pp===Infinity?'Showing all '+total+' products':'Showing '+(s+1)+'\u2013'+e+' of '+total;
+        wrap.appendChild(info);
+        if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';
+            function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}
+            if(curPage>1)pages.appendChild(mkB('\u2039',curPage-1));
+            var ns=tpg<=7?Array.from({length:tpg},(_,i)=>i+1):[1,...(curPage>3?['\u2026']:[]),...Array.from({length:3},(_,i)=>Math.max(2,curPage-1)+i).filter(x=>x>=2&&x<=tpg-1),(curPage<tpg-2?'\u2026':''),tpg];
+            ns.filter(Boolean).forEach(function(p){var b=mkB(p==='…'?'…':p,p==='…'?0:p);if(p==='…')b.classList.add('lm-ellipsis');pages.appendChild(b);});
+            if(curPage<tpg)pages.appendChild(mkB('\u203a',curPage+1));
+            wrap.appendChild(pages);
+        }
+        var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';
+        var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';
+        [20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});
+        sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});
+        ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));
+        wrap.appendChild(ppW); el.appendChild(wrap);
+    }
+    document.addEventListener('DOMContentLoaded',init);
+})();
 </script>
 
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

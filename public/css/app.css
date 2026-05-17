@@ -1225,3 +1225,244 @@ tbody td { padding: 10px 14px; font-size: 13.5px; vertical-align: middle; }
     font-weight: 600;
 }
 
+
+/* ============================================================
+   LIST MANAGER — universal search/sort/filter/pagination
+   ============================================================ */
+
+/* Controls bar (search + sort + per-page) */
+.lm-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.lm-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+    max-width: 340px;
+}
+
+.lm-search-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.lm-search {
+    width: 100%;
+    padding: 8px 32px 8px 32px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color .15s;
+}
+.lm-search:focus { border-color: var(--brand); }
+
+.lm-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 2px 4px;
+    display: none;
+}
+.lm-search-clear.visible { display: flex; }
+
+.lm-select {
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+.lm-select:focus { border-color: var(--brand); }
+
+/* Filter pills */
+.lm-filter-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+/* Sortable column headers */
+th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+th[data-sort]:hover { background: var(--bg); }
+th[data-sort] .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    opacity: .4;
+    font-size: 10px;
+}
+th[data-sort].sort-asc .sort-icon::after  { content: ' ↑'; opacity: 1; }
+th[data-sort].sort-desc .sort-icon::after { content: ' ↓'; opacity: 1; }
+th[data-sort]:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: ' ↕'; }
+
+/* Month separator rows */
+tr.month-sep td {
+    background: var(--bg);
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Pagination */
+.lm-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 4px 0;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.lm-page-info { flex: 1; min-width: 100px; }
+
+.lm-pages {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.lm-page-btn {
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    padding: 0 6px;
+    transition: all .12s;
+    font-family: inherit;
+}
+.lm-page-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.lm-page-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.lm-page-btn:disabled { opacity: .35; cursor: not-allowed; }
+.lm-page-btn.lm-ellipsis { border: none; background: none; cursor: default; }
+
+/* No results row */
+tr.lm-no-results td {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* ============================================================
+   DESIGN CONSISTENCY FIXES
+   ============================================================ */
+
+/* Unified search bars (replaces inline styles scattered everywhere) */
+.search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+.search-bar input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+    color: var(--text);
+    background: var(--white);
+}
+.search-bar input[type="text"]:focus { border-color: var(--brand); }
+
+/* Consistent stat-sub */
+.stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Consistent amber stat value */
+.stat-value.amber { color: var(--amber); }
+
+/* Better empty state icon for FA icons */
+.empty-icon i { font-size: 36px; opacity: .25; display: block; margin-bottom: 10px; }
+
+/* Consistent table column sort hint */
+.table-wrap table thead th { position: relative; }
+
+/* Per-page label */
+.lm-per-page-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Warning badge */
+.badge-warning {
+    background: var(--amber-bg);
+    color: var(--amber);
+}
+
+/* Owner badge */
+.badge-owner {
+    background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+    color: #5a3a00;
+    font-weight: 700;
+}
+
+/* Delete permission warning */
+.delete-perm-warning {
+    background: var(--red-bg);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}

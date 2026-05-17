@@ -22,6 +22,20 @@ ob_start();
     </div>
 </div>
 
+<!-- LM Controls -->
+<div class="lm-controls" style="margin-bottom:8px">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="expTableSearch" placeholder="Search title, category, note…">
+        <button class="lm-search-clear" id="expTableClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="expTableSort">
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="amt-desc">Most Expensive</option>
+        <option value="amt-asc">Least Expensive</option>
+    </select>
+</div>
 <!-- Month navigator -->
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
     <?php
@@ -77,7 +91,7 @@ ob_start();
 </div>
 <?php else: ?>
 <div class="table-wrap">
-    <table>
+    <table id="expTable">
         <thead>
             <tr>
                 <th>Date</th>
@@ -355,4 +369,37 @@ function openExpenseEdit(id, title, amount, date, catId, paidTo, note) {
 }
 </script>
 
+
+<script>
+(function(){
+var allRows=[],searchQ='',sortKey='date-desc',perPage=20,curPage=1;
+function init(){
+    allRows=Array.from(document.querySelectorAll('#expTable tbody tr:not(.month-total-row)'));
+    var si=document.getElementById('expTableSearch'),sc=document.getElementById('expTableClear');
+    if(si){si.addEventListener('input',function(){searchQ=this.value.toLowerCase().trim();sc.classList.toggle('visible',searchQ.length>0);curPage=1;render();});sc.addEventListener('click',function(){si.value='';searchQ='';sc.classList.remove('visible');curPage=1;render();});}
+    var ss=document.getElementById('expTableSort');if(ss)ss.addEventListener('change',function(){sortKey=this.value;curPage=1;render();});
+    render();
+}
+function parseD(r){var v=r.getAttribute('data-date');return v?new Date(v):new Date(0);}
+function getAmt(r){var c=r.querySelectorAll('td')[3];return c?parseFloat(c.textContent.replace(/[^0-9.]/g,'')||0):0;}
+function render(){
+    var f=allRows.filter(function(row){if(searchQ&&row.textContent.toLowerCase().indexOf(searchQ)===-1)return false;return true;});
+    f.sort(function(a,b){
+        if(sortKey==='date-desc')return parseD(b)-parseD(a);if(sortKey==='date-asc')return parseD(a)-parseD(b);
+        if(sortKey==='amt-desc')return getAmt(b)-getAmt(a);if(sortKey==='amt-asc')return getAmt(a)-getAmt(b);return 0;
+    });
+    var pp=perPage==='all'?Infinity:parseInt(perPage),total=f.length,tpg=pp===Infinity?1:Math.max(1,Math.ceil(total/pp));
+    if(curPage>tpg)curPage=tpg;if(curPage<1)curPage=1;
+    var s=pp===Infinity?0:(curPage-1)*pp,e2=pp===Infinity?total:Math.min(s+pp,total);
+    var tbody=document.querySelector('#expTable tbody'),colC=(document.querySelector('#expTable thead tr')||{}).children.length||6;
+    // hide/show rows (keep month-total-rows but filter them out)
+    allRows.forEach(function(r){r.style.display='none';});
+    if(f.length===0){/* show no-results */var ex=document.getElementById('expNoResults');if(!ex){ex=document.createElement('tr');ex.id='expNoResults';ex.className='lm-no-results';var nd=document.createElement('td');nd.setAttribute('colspan',colC);nd.textContent='No expenses match.';ex.appendChild(nd);tbody.appendChild(ex);}ex.style.display='';}
+    else{var ex=document.getElementById('expNoResults');if(ex)ex.style.display='none';f.slice(s,e2).forEach(function(r){r.style.display='';});}
+    var el=document.getElementById('expTablePager');if(el)renderPager(el,total,tpg,s,e2,pp);
+}
+function renderPager(el,total,tpg,s,e2,pp){el.innerHTML='';var wrap=document.createElement('div');wrap.className='lm-pagination';var info=document.createElement('div');info.className='lm-page-info';info.textContent=total===0?'No results':pp===Infinity?'All '+total:' Showing '+(s+1)+'–'+e2+' of '+total;wrap.appendChild(info);if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}if(curPage>1)pages.appendChild(mkB('‹',curPage-1));var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('…');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('…');ns.push(tpg);}ns.forEach(function(p){var b=mkB(p,p==='…'?0:p);if(p==='…')b.classList.add('lm-ellipsis');pages.appendChild(b);});if(curPage<tpg)pages.appendChild(mkB('›',curPage+1));wrap.appendChild(pages);}var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';[20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));wrap.appendChild(ppW);el.appendChild(wrap);}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

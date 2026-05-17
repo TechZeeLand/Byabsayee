@@ -101,7 +101,23 @@ function asset(string $path): string
 
 function now(): string
 {
+    static $tzSet = false;
+    if (!$tzSet) {
+        $tzSet = true;
+        $tz = isset($_COOKIE['byabsayee_tz']) ? rawurldecode($_COOKIE['byabsayee_tz']) : null;
+        if ($tz && preg_match('/^[A-Za-z0-9_\/+\-]+$/', $tz)) {
+            try { date_default_timezone_set($tz); } catch (\Throwable $e) {}
+        }
+    }
     return date('Y-m-d H:i:s');
+}
+
+function set_timezone_from_cookie(): void
+{
+    $tz = isset($_COOKIE['byabsayee_tz']) ? rawurldecode($_COOKIE['byabsayee_tz']) : null;
+    if ($tz && preg_match('/^[A-Za-z0-9_\/+\-]+$/', $tz)) {
+        try { date_default_timezone_set($tz); } catch (\Throwable $e) {}
+    }
 }
 
 function slugify(string $text): string

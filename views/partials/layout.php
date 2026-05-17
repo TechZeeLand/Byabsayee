@@ -1,3 +1,7 @@
+<?php
+// Apply user's browser timezone (sent via JS cookie)
+if (function_exists('set_timezone_from_cookie')) set_timezone_from_cookie();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
