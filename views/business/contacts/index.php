@@ -17,18 +17,18 @@ ob_start();
 <!-- FILTER TABS + SEARCH -->
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="filter-btn <?= $activeTab==='all'?'active':'' ?>" onclick="filterTab('all')">
+        <button class="btn btn-sm <?= $activeTab==='all'?'active':'' ?>" onclick="filterTab('all')">
             All <span class="badge badge-gray" style="margin-left:4px"><?= $totalCount ?></span>
         </button>
-        <button class="filter-btn <?= $activeTab==='customer'?'active':'' ?>" onclick="filterTab('customer')">
+        <button class="btn btn-sm <?= $activeTab==='customer'?'active':'' ?>" onclick="filterTab('customer')">
             <i class="fa-solid fa-users"></i> Customers
             <span class="badge badge-gray" style="margin-left:4px"><?= count($customers) ?></span>
         </button>
-        <button class="filter-btn <?= $activeTab==='supplier'?'active':'' ?>" onclick="filterTab('supplier')">
+        <button class="btn btn-sm <?= $activeTab==='supplier'?'active':'' ?>" onclick="filterTab('supplier')">
             <i class="fa-solid fa-user-tie"></i> Suppliers
             <span class="badge badge-gray" style="margin-left:4px"><?= count($suppliers) ?></span>
         </button>
-        <button class="filter-btn <?= $activeTab==='employee'?'active':'' ?>" onclick="filterTab('employee')">
+        <button class="btn btn-sm <?= $activeTab==='employee'?'active':'' ?>" onclick="filterTab('employee')">
             <i class="fa-solid fa-id-badge"></i> Employees
             <span class="badge badge-gray" style="margin-left:4px"><?= count($employees) ?></span>
         </button>
