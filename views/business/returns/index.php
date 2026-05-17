@@ -179,15 +179,24 @@ function render(){
     var tbody=document.querySelector('#retTable tbody'),colC=(document.querySelector('#retTable thead tr')||{}).children.length||6;
     while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
     if(f.length===0){var nr=document.createElement('tr');nr.className='lm-no-results';var nd=document.createElement('td');nd.setAttribute('colspan',colC);nd.textContent='No records match.';nr.appendChild(nd);tbody.appendChild(nr);}
-    else{var lastM=null;f.slice(s,e2).forEach(function(row){
-        var d=parseD(row);
-        if(d.getTime()>0){var mk=d.getFullYear()+'-'+d.getMonth();if(mk!==lastM){lastM=mk;var sep=document.createElement('tr');sep.className='month-sep';var std=document.createElement('td');std.setAttribute('colspan',colC);std.textContent=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});sep.appendChild(std);tbody.appendChild(sep);}}
-        tbody.appendChild(row);
-    });}
+    else{f.slice(s,e2).forEach(function(row){tbody.appendChild(row);});}
     renderPager(document.getElementById('retPager'),total,tpg,s,e2,pp);
 }
 function renderPager(el,total,tpg,s,e2,pp){if(!el)return;el.innerHTML='';var wrap=document.createElement('div');wrap.className='lm-pagination';var info=document.createElement('div');info.className='lm-page-info';info.textContent=total===0?'No results':pp===Infinity?'All '+total+' records':'Showing '+(s+1)+'–'+e2+' of '+total;wrap.appendChild(info);if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}if(curPage>1)pages.appendChild(mkB('‹',curPage-1));var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('…');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('…');ns.push(tpg);}ns.forEach(function(p){var b=mkB(p,p==='…'?0:p);if(p==='…')b.classList.add('lm-ellipsis');pages.appendChild(b);});if(curPage<tpg)pages.appendChild(mkB('›',curPage+1));wrap.appendChild(pages);}var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';[20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));wrap.appendChild(ppW);el.appendChild(wrap);}
-document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('DOMContentLoaded',function(){init();MonthNav.init('retTable','retTableMonthNav');});
 })();
 </script>
-<?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>
+<?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?><div class="month-nav" id="retTableMonthNav">
+    <button class="btn btn-sm btn-secondary mn-prev" onclick="MonthNav.prev('retTable')" title="Previous month">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div style="text-align:center;min-width:160px">
+        <div class="mn-label" style="font-weight:600;font-size:14px">Loading…</div>
+        <div class="mn-count" style="font-size:11px;color:var(--text-muted)"></div>
+    </div>
+    <button class="btn btn-sm btn-secondary mn-next" onclick="MonthNav.next('retTable')" title="Next month">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+</div>
+
+

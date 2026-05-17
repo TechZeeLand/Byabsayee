@@ -15,22 +15,11 @@ ob_start();
     </div>
         <button class="btn btn-primary" data-modal="addSupplierModal">+ Add Supplier</button>
 </div>
-
-<form method="GET" style="margin-bottom:16px;display:flex;gap:8px">
-    <input type="text" name="q" value="<?= e($_GET['q'] ?? '') ?>" placeholder="Search suppliers…"
-           style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit;flex:1;outline:none">
-    <button type="submit" class="btn btn-secondary">Search</button>
-    <?php if (!empty($_GET['q'])): ?>
-        <a href="/books/<?= $book['id'] ?>/suppliers" class="btn btn-secondary">Clear</a>
-    <?php endif; ?>
-</form>
-
-<?php if (empty($suppliers)): ?>
 <!-- LM Controls -->
 <div class="lm-controls">
     <div class="lm-search-wrap">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="lm-search" id="suppTableSearch" placeholder="Search name, company, phone…">
+        <input type="text" class="lm-search" id="suppTableSearch" placeholder="Search name, company, phone, email…">
         <button class="lm-search-clear" id="suppTableClear"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <select class="lm-select" id="suppTableSort">
@@ -41,6 +30,7 @@ ob_start();
     </select>
 </div>
 
+<?php if (empty($suppliers)): ?>
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">🏭</div>

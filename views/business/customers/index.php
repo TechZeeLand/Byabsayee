@@ -32,12 +32,11 @@ ob_start();
     <?php endif; ?>
 </form>
 
-<?php if (empty($customers)): ?>
 <!-- LM Controls -->
 <div class="lm-controls">
     <div class="lm-search-wrap">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="lm-search" id="custTableSearch" placeholder="Search name, phone, email…">
+        <input type="text" class="lm-search" id="custTableSearch" placeholder="Search name, phone, email, address…">
         <button class="lm-search-clear" id="custTableClear"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <select class="lm-select" id="custTableSort">
@@ -48,6 +47,7 @@ ob_start();
     </select>
 </div>
 
+<?php if (empty($customers)): ?>
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">👥</div>

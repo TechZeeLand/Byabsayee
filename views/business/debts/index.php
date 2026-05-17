@@ -70,12 +70,11 @@ ob_start();
 </div>
 
 <!-- Debts -->
-<?php if (empty($debts)): ?>
 <!-- LM Controls -->
 <div class="lm-controls">
     <div class="lm-search-wrap">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="lm-search" id="debtsTableSearch" placeholder="Search creditor, note…">
+        <input type="text" class="lm-search" id="debtsTableSearch" placeholder="Search creditor, invoice, note…">
         <button class="lm-search-clear" id="debtsTableClear"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <select class="lm-select" id="debtsTableSort">
@@ -85,6 +84,18 @@ ob_start();
         <option value="amt-asc">Least Amount</option>
     </select>
 </div>
+<div class="month-nav" id="debtsTableMonthNav">
+    <button class="btn btn-sm btn-secondary mn-prev" onclick="MonthNav.prev('debtsTable')" title="Previous month">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div style="text-align:center;min-width:160px">
+        <div class="mn-label" style="font-weight:600;font-size:14px">Loading…</div>
+        <div class="mn-count" style="font-size:11px;color:var(--text-muted)"></div>
+    </div>
+    <button class="btn btn-sm btn-secondary mn-next" onclick="MonthNav.next('debtsTable')" title="Next month">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+</div>
 <div class="lm-filter-pills">
     <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Status:</span>
     <button class="btn btn-sm btn-primary" data-lmf="all">All</button>
@@ -92,6 +103,7 @@ ob_start();
     <button class="btn btn-sm btn-secondary" data-lmf="partial">Partial</button>
     <button class="btn btn-sm btn-secondary" data-lmf="paid">Paid</button>
 </div>
+<?php if (empty($debts)): ?>
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon"><i class="fa-solid fa-file-circle-minus"></i></div>
@@ -431,7 +443,7 @@ function render(){
     renderPager(document.getElementById('debtsPager'),total,tpg,s,e2,pp);
 }
 function renderPager(el,total,tpg,s,e2,pp){if(!el)return;el.innerHTML='';var wrap=document.createElement('div');wrap.className='lm-pagination';var info=document.createElement('div');info.className='lm-page-info';info.textContent=total===0?'No results':pp===Infinity?'All '+total+' records':'Showing '+(s+1)+'–'+e2+' of '+total;wrap.appendChild(info);if(tpg>1){var pages=document.createElement('div');pages.className='lm-pages';function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}if(curPage>1)pages.appendChild(mkB('‹',curPage-1));var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('…');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('…');ns.push(tpg);}ns.forEach(function(p){var b=mkB(p,p==='…'?0:p);if(p==='…')b.classList.add('lm-ellipsis');pages.appendChild(b);});if(curPage<tpg)pages.appendChild(mkB('›',curPage+1));wrap.appendChild(pages);}var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';[20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));wrap.appendChild(ppW);el.appendChild(wrap);}
-document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('DOMContentLoaded',function(){init();MonthNav.init('debtsTable','debtsTableMonthNav');});
 })();
 </script>
 <?php $content = ob_get_clean(); require BASE_PATH . '/views/partials/layout.php'; ?>

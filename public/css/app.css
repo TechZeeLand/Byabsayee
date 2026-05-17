@@ -1466,3 +1466,25 @@ tr.lm-no-results td {
     gap: 6px;
     margin-top: 8px;
 }
+
+/* ── Month Navigator (arrow left/right) ── */
+.month-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    width: fit-content;
+}
+.month-nav .mn-prev,
+.month-nav .mn-next {
+    padding: 4px 10px;
+}
+.month-nav .mn-prev:disabled,
+.month-nav .mn-next:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+}

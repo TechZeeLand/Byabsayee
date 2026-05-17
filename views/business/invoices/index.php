@@ -73,6 +73,19 @@ ob_start();
     <button class="btn btn-sm btn-secondary" data-sf="overdue">Overdue</button>
 </div>
 
+<div class="month-nav" id="invTableMonthNav">
+    <button class="btn btn-sm btn-secondary mn-prev" onclick="MonthNav.prev('invTable')" title="Previous month">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div style="text-align:center;min-width:160px">
+        <div class="mn-label" style="font-weight:600;font-size:14px">Loading…</div>
+        <div class="mn-count" style="font-size:11px;color:var(--text-muted)"></div>
+    </div>
+    <button class="btn btn-sm btn-secondary mn-next" onclick="MonthNav.next('invTable')" title="Next month">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+</div>
+
 <?php if (empty($invoices)): ?>
 <div class="table-wrap">
     <div class="empty-state">
@@ -290,7 +303,7 @@ ob_start();
         el.appendChild(wrap);
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function() { init(); MonthNav.init('invTable','invTableMonthNav'); });
 })();
 </script>
 

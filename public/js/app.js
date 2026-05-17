@@ -423,3 +423,59 @@ function showToast(msg) {
     document.body.appendChild(t);
     setTimeout(function(){ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 350); }, 2000);
 }
+
+
+/* Month navigator for a list page.
+   Call: MonthNav.init('myTableId', 'myNavId', dateAttr='data-date')
+   Rows must have data-date="YYYY-MM-DD"
+*/
+(function(global){
+var MonthNav = {
+    instances: {},
+    init: function(tableId, navId, dateAttr) {
+        dateAttr = dateAttr || 'data-date';
+        var rows = Array.from(document.querySelectorAll('#'+tableId+' tbody tr'));
+        var months = {};
+        rows.forEach(function(r){
+            var v = r.getAttribute(dateAttr);
+            if(!v) return;
+            var d = new Date(v);
+            if(isNaN(d)) return;
+            var k = d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);
+            if(!months[k]) months[k]=[];
+            months[k].push(r);
+        });
+        var keys = Object.keys(months).sort().reverse();  // newest first
+        if(!keys.length) return;
+        var cur = 0;
+        this.instances[tableId] = {rows:rows, months:months, keys:keys, cur:cur, navId:navId, tableId:tableId};
+        this._render(tableId);
+    },
+    _render: function(tableId) {
+        var inst = this.instances[tableId]; if(!inst) return;
+        var keys = inst.keys, cur = inst.cur, months = inst.months;
+        var nav = document.getElementById(inst.navId); 
+        var key = keys[cur];
+        var d = new Date(key+'-01');
+        var label = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+        if(nav) {
+            nav.querySelector('.mn-label').textContent = label;
+            nav.querySelector('.mn-prev').disabled = cur >= keys.length-1;
+            nav.querySelector('.mn-next').disabled = cur <= 0;
+            nav.querySelector('.mn-count').textContent = (months[key]||[]).length + ' record'+(months[key].length!==1?'s':'');
+        }
+        // show/hide rows
+        inst.rows.forEach(function(r){ r.style.display='none'; });
+        (months[key]||[]).forEach(function(r){ r.style.display=''; });
+    },
+    prev: function(tableId) {
+        var inst = this.instances[tableId]; if(!inst) return;
+        if(inst.cur < inst.keys.length-1) { inst.cur++; this._render(tableId); }
+    },
+    next: function(tableId) {
+        var inst = this.instances[tableId]; if(!inst) return;
+        if(inst.cur > 0) { inst.cur--; this._render(tableId); }
+    }
+};
+global.MonthNav = MonthNav;
+})(window);

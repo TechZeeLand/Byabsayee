@@ -85,13 +85,11 @@ ob_start();
 </div>
 <?php endif; ?>
 
-<!-- EMPLOYEES TABLE -->
-<?php if (empty($employees)): ?>
 <!-- LM Controls -->
 <div class="lm-controls">
     <div class="lm-search-wrap">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="lm-search" id="empTableSearch" placeholder="Search name, designation, department…">
+        <input type="text" class="lm-search" id="empTableSearch" placeholder="Search name, designation, email…">
         <button class="lm-search-clear" id="empTableClear"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <select class="lm-select" id="empTableSort">
@@ -108,7 +106,8 @@ ob_start();
     <button class="btn btn-sm btn-secondary" data-lmf="inactive">Inactive</button>
     <button class="btn btn-sm btn-secondary" data-lmf="on_leave">On Leave</button>
 </div>
-
+<!-- EMPLOYEES TABLE -->
+<?php if (empty($employees)): ?>
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">👥</div>

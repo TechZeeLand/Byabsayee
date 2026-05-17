@@ -15,30 +15,31 @@ ob_start();
 </div>
 
 <!-- FILTER TABS + SEARCH -->
-<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm <?= $activeTab==='all'?'active':'' ?>" onclick="filterTab('all')">
-            All <span class="badge badge-gray" style="margin-left:4px"><?= $totalCount ?></span>
-        </button>
-        <button class="btn btn-sm <?= $activeTab==='customer'?'active':'' ?>" onclick="filterTab('customer')">
-            <i class="fa-solid fa-users"></i> Customers
-            <span class="badge badge-gray" style="margin-left:4px"><?= count($customers) ?></span>
-        </button>
-        <button class="btn btn-sm <?= $activeTab==='supplier'?'active':'' ?>" onclick="filterTab('supplier')">
-            <i class="fa-solid fa-user-tie"></i> Suppliers
-            <span class="badge badge-gray" style="margin-left:4px"><?= count($suppliers) ?></span>
-        </button>
-        <button class="btn btn-sm <?= $activeTab==='employee'?'active':'' ?>" onclick="filterTab('employee')">
-            <i class="fa-solid fa-id-badge"></i> Employees
-            <span class="badge badge-gray" style="margin-left:4px"><?= count($employees) ?></span>
-        </button>
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="conTableSearch" placeholder="Search name, phone, email…">
+        <button class="lm-search-clear" id="conTableClear"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div style="position:relative;min-width:200px">
-        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px"></i>
-        <input type="text" id="contactSearch" placeholder="Search contacts…"
-               style="padding:7px 10px 7px 30px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;width:100%"
-               oninput="searchContacts(this.value)">
-    </div>
+    <select class="lm-select" id="conTableSort">
+        <option value="az">Name A–Z</option>
+        <option value="za">Name Z–A</option>
+    </select>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Type:</span>
+    <button class="btn btn-sm btn-primary" data-contact-tab="all" onclick="filterTab('all')">
+        All <span class="badge badge-gray" style="margin-left:4px"><?= $totalCount ?></span>
+    </button>
+    <button class="btn btn-sm btn-secondary" data-contact-tab="customer" onclick="filterTab('customer')">
+        <i class="fa-solid fa-users"></i> Customers <span class="badge badge-gray" style="margin-left:4px"><?= count($customers) ?></span>
+    </button>
+    <button class="btn btn-sm btn-secondary" data-contact-tab="supplier" onclick="filterTab('supplier')">
+        <i class="fa-solid fa-user-tie"></i> Suppliers <span class="badge badge-gray" style="margin-left:4px"><?= count($suppliers) ?></span>
+    </button>
+    <button class="btn btn-sm btn-secondary" data-contact-tab="employee" onclick="filterTab('employee')">
+        <i class="fa-solid fa-id-badge"></i> Employees <span class="badge badge-gray" style="margin-left:4px"><?= count($employees) ?></span>
+    </button>
 </div>
 
 <!-- ALL CONTACTS (unified table) -->
@@ -90,26 +91,6 @@ $typeIcons  = ['customer'=>'fa-users','supplier'=>'fa-user-tie','employee'=>'fa-
 ?>
 
 <?php if (empty($allContacts)): ?>
-<!-- LM Controls -->
-<div class="lm-controls" style="margin-bottom:12px">
-    <div class="lm-search-wrap" style="max-width:300px">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" class="lm-search" id="conTableSearch" placeholder="Search name, phone, email…">
-        <button class="lm-search-clear" id="conTableClear"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <select class="lm-select" id="conTableSort">
-        <option value="az">Name A–Z</option>
-        <option value="za">Name Z–A</option>
-        <option value="amt-desc">Most Business</option>
-    </select>
-    <select class="lm-select" id="conTablePerPage">
-        <option value="20">20 per page</option>
-        <option value="50">50 per page</option>
-        <option value="100">100 per page</option>
-        <option value="all">All</option>
-    </select>
-</div>
-
 <div class="table-wrap">
     <div class="empty-state">
         <div class="empty-icon">📋</div>
@@ -170,23 +151,38 @@ var currentTab = 'all';
 
 function filterTab(tab) {
     currentTab = tab;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    event.target.closest('.filter-btn').classList.add('active');
+    document.querySelectorAll('[data-contact-tab]').forEach(function(b) {
+        var t = b.getAttribute('data-contact-tab');
+        b.classList.toggle('btn-primary', t === tab);
+        b.classList.toggle('btn-secondary', t !== tab);
+    });
     applyFilter();
 }
 
 function searchContacts(q) {
+    var sc = document.getElementById('conTableClear');
+    if(sc) sc.classList.toggle('visible', (q||'').length > 0);
     applyFilter(q);
 }
 
 function applyFilter(q) {
-    q = (q || document.getElementById('contactSearch').value || '').toLowerCase().trim();
+    q = (q || document.getElementById('conTableSearch').value || '').toLowerCase().trim();
     document.querySelectorAll('#contactsTable tbody tr').forEach(row => {
         const typeMatch   = currentTab === 'all' || row.dataset.type === currentTab;
         const searchMatch = !q || row.dataset.search.includes(q);
         row.style.display = (typeMatch && searchMatch) ? '' : 'none';
     });
 }
+
+// Wire up new search input
+document.addEventListener('DOMContentLoaded', function() {
+    var si = document.getElementById('conTableSearch');
+    var sc = document.getElementById('conTableClear');
+    if (si) {
+        si.addEventListener('input', function() { searchContacts(this.value); });
+        if (sc) sc.addEventListener('click', function() { si.value=''; searchContacts(''); });
+    }
+});
 </script>
 
 <?php

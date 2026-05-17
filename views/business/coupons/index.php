@@ -58,24 +58,31 @@ ob_start();
         <button id="printSelectedBtn" class="btn btn-sm btn-secondary" style="display:none" onclick="printSelected()">
             <i class="fa-solid fa-print"></i> Print Selected
         </button>
-        <form method="GET" style="display:flex;gap:6px">
-            <input type="hidden" name="filter" value="<?= e($filter) ?>">
-            <input type="text" name="q" value="<?= e($search) ?>"
-                   placeholder="Search name or code…"
-                   style="padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;width:200px">
-            <button type="submit" class="btn btn-sm btn-secondary">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-            <?php if ($search): ?>
-            <a href="?filter=<?= e($filter) ?>" class="btn btn-sm btn-secondary">
-                <i class="fa-solid fa-xmark"></i>
-            </a>
-            <?php endif; ?>
-        </form>
-    </div>
+        </div>
 </div>
 
 <!-- Table -->
+<!-- LM Controls -->
+<div class="lm-controls">
+    <div class="lm-search-wrap">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" class="lm-search" id="coupTableSearch" placeholder="Search code, description…">
+        <button class="lm-search-clear" id="coupTableClear"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <select class="lm-select" id="coupTableSort">
+        <option value="az">Code A–Z</option>
+        <option value="za">Code Z–A</option>
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+    </select>
+</div>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Status:</span>
+    <button class="btn btn-sm btn-primary" data-lmf="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="active">Active</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="inactive">Inactive</button>
+    <button class="btn btn-sm btn-secondary" data-lmf="expired">Expired</button>
+</div>
 <?php if (empty($coupons)): ?>
 <div class="table-wrap">
     <div class="empty-state">
