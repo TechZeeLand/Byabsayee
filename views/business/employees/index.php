@@ -99,13 +99,37 @@ ob_start();
         <option value="amt-asc">Salary Low–High</option>
     </select>
 </div>
+<?php
+// Build unique designations and departments for filter pills
+$_empDesigs = array_unique(array_filter(array_column($employees, 'designation_name')));
+$_empDepts  = array_unique(array_filter(array_column($employees, 'department')));
+sort($_empDesigs); sort($_empDepts);
+?>
 <div class="lm-filter-pills">
     <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Status:</span>
-    <button class="btn btn-sm btn-primary" data-lmf="all">All</button>
-    <button class="btn btn-sm btn-secondary" data-lmf="active">Active</button>
-    <button class="btn btn-sm btn-secondary" data-lmf="inactive">Inactive</button>
-    <button class="btn btn-sm btn-secondary" data-lmf="on_leave">On Leave</button>
+    <button class="btn btn-sm btn-primary" data-emp-status="all">All</button>
+    <button class="btn btn-sm btn-secondary" data-emp-status="active">Active</button>
+    <button class="btn btn-sm btn-secondary" data-emp-status="inactive">Inactive</button>
+    <button class="btn btn-sm btn-secondary" data-emp-status="terminated">Terminated</button>
 </div>
+<?php if (!empty($_empDesigs)): ?>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Designation:</span>
+    <button class="btn btn-sm btn-primary" data-emp-desig="all">All</button>
+    <?php foreach ($_empDesigs as $_d): ?>
+    <button class="btn btn-sm btn-secondary" data-emp-desig="<?= e($_d) ?>"><?= e($_d) ?></button>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+<?php if (!empty($_empDepts)): ?>
+<div class="lm-filter-pills">
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Department:</span>
+    <button class="btn btn-sm btn-primary" data-emp-dept="all">All</button>
+    <?php foreach ($_empDepts as $_dp): ?>
+    <button class="btn btn-sm btn-secondary" data-emp-dept="<?= e($_dp) ?>"><?= e($_dp) ?></button>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 <!-- EMPLOYEES TABLE -->
 <?php if (empty($employees)): ?>
 <div class="table-wrap">
@@ -433,52 +457,203 @@ ob_start();
 </div>
 <?php endif; ?>
 
+
 <script>
-// Toggle all permissions in a grid
-function toggleAllPerms(prefix, val) {
-    document.querySelectorAll('.' + prefix + '-perm').forEach(cb => cb.checked = val);
-}
+(function(){
+var allRows=[], statusF='all', desigF='all', deptF='all', searchQ='', sortKey='az', perPage=20, curPage=1;
 
-// Load designation permissions into a form
-function loadDesigPerms(desigId, prefix) {
-    if (!desigId) return;
-    fetch('/books/<?= $book['id'] ?>/employees/designations/' + desigId + '/permissions')
-        .then(r => r.json())
-        .then(perms => {
-            document.querySelectorAll('.' + prefix + '-perm').forEach(cb => {
-                const mod    = cb.dataset.mod;
-                const action = cb.dataset.action;
-                cb.checked = !!(perms[mod] && perms[mod][action]);
-            });
-        }).catch(() => {});
-}
+function init(){
+    allRows=Array.from(document.querySelectorAll('#empTable tbody tr'));
 
-// Open edit designation modal
-function openEditDesig(desig) {
-    document.getElementById('editDesigName').value = desig.name;
-    document.getElementById('editDesigForm').action = '/books/<?= $book['id'] ?>/employees/designations/' + desig.id + '/edit';
+    // Search
+    var si=document.getElementById('empTableSearch'), sc=document.getElementById('empTableClear');
+    if(si){
+        si.addEventListener('input',function(){searchQ=this.value.toLowerCase().trim();sc.classList.toggle('visible',searchQ.length>0);curPage=1;render();});
+        sc.addEventListener('click',function(){si.value='';searchQ='';sc.classList.remove('visible');curPage=1;render();});
+    }
 
-    const perms = typeof desig.permissions === 'string'
-        ? JSON.parse(desig.permissions)
-        : (desig.permissions || {});
+    // Sort
+    var ss=document.getElementById('empTableSort');
+    if(ss) ss.addEventListener('change',function(){sortKey=this.value;curPage=1;render();});
 
-    document.querySelectorAll('.edit-desig-perm').forEach(cb => {
-        const mod    = cb.dataset.mod;
-        const action = cb.dataset.action;
-        cb.checked = !!(perms[mod] && perms[mod][action]);
+    // Status pills
+    document.querySelectorAll('[data-emp-status]').forEach(function(b){
+        b.addEventListener('click',function(){
+            statusF=this.getAttribute('data-emp-status');
+            document.querySelectorAll('[data-emp-status]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');});
+            this.classList.add('btn-primary');this.classList.remove('btn-secondary');
+            curPage=1;render();
+        });
     });
 
-    document.getElementById('editDesigModal').classList.add('open');
+    // Designation pills
+    document.querySelectorAll('[data-emp-desig]').forEach(function(b){
+        b.addEventListener('click',function(){
+            desigF=this.getAttribute('data-emp-desig');
+            document.querySelectorAll('[data-emp-desig]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');});
+            this.classList.add('btn-primary');this.classList.remove('btn-secondary');
+            curPage=1;render();
+        });
+    });
+
+    // Department pills
+    document.querySelectorAll('[data-emp-dept]').forEach(function(b){
+        b.addEventListener('click',function(){
+            deptF=this.getAttribute('data-emp-dept');
+            document.querySelectorAll('[data-emp-dept]').forEach(function(x){x.classList.remove('btn-primary');x.classList.add('btn-secondary');});
+            this.classList.add('btn-primary');this.classList.remove('btn-secondary');
+            curPage=1;render();
+        });
+    });
+
+    render();
 }
 
-// When a designation is selected in the invite form, auto-fill the name
-document.getElementById('inviteDesigSelect')?.addEventListener('change', function() {
-    const opt = this.options[this.selectedIndex];
-    if (opt.value) {
-        document.getElementById('inviteDesigName').value = opt.text;
-        loadDesigPerms(opt.value, 'invite');
+function td(r,i){var c=r.querySelectorAll('td')[i];return c?c.textContent.trim():'';}
+
+function render(){
+    var f=allRows.filter(function(row){
+        if(statusF!=='all'&&row.getAttribute('data-emp-status')!==statusF) return false;
+        if(desigF!=='all'&&row.getAttribute('data-emp-desig')!==desigF)   return false;
+        if(deptF!=='all'&&row.getAttribute('data-emp-dept')!==deptF)     return false;
+        if(searchQ&&row.textContent.toLowerCase().indexOf(searchQ)===-1)   return false;
+        return true;
+    });
+
+    f.sort(function(a,b){
+        if(sortKey==='az')  return td(a,0).localeCompare(td(b,0));
+        if(sortKey==='za')  return td(b,0).localeCompare(td(a,0));
+        var sa=parseFloat(td(a,5).replace(/[^0-9.]/g,'')||0);
+        var sb=parseFloat(td(b,5).replace(/[^0-9.]/g,'')||0);
+        if(sortKey==='amt-desc')return sb-sa;
+        if(sortKey==='amt-asc') return sa-sb;
+        return 0;
+    });
+
+    var pp=perPage==='all'?Infinity:parseInt(perPage), total=f.length;
+    var tpg=pp===Infinity?1:Math.max(1,Math.ceil(total/pp));
+    if(curPage>tpg)curPage=tpg; if(curPage<1)curPage=1;
+    var s=pp===Infinity?0:(curPage-1)*pp, e2=pp===Infinity?total:Math.min(s+pp,total);
+
+    var tbody=document.querySelector('#empTable tbody');
+    var colC=document.querySelector('#empTable thead tr').children.length;
+    while(tbody.firstChild)tbody.removeChild(tbody.firstChild);
+
+    if(f.length===0){
+        var nr=document.createElement('tr');nr.className='lm-no-results';
+        var nd=document.createElement('td');nd.setAttribute('colspan',colC);
+        nd.textContent='No employees match the selected filters.';
+        nr.appendChild(nd);tbody.appendChild(nr);
+    } else {
+        f.slice(s,e2).forEach(function(r){tbody.appendChild(r);});
     }
+
+    renderPager(document.getElementById('empTablePager'),total,tpg,s,e2,pp);
+}
+
+function renderPager(el,total,tpg,s,e2,pp){
+    if(!el)return;el.innerHTML='';
+    var wrap=document.createElement('div');wrap.className='lm-pagination';
+    var info=document.createElement('div');info.className='lm-page-info';
+    info.textContent=total===0?'No results':pp===Infinity?'All '+total+' employees':'Showing '+(s+1)+'\u2013'+e2+' of '+total;
+    wrap.appendChild(info);
+    if(tpg>1){
+        var pages=document.createElement('div');pages.className='lm-pages';
+        function mkB(l,pg){var b=document.createElement('button');b.className='lm-page-btn';if(pg===curPage)b.classList.add('active');b.textContent=l;if(pg)b.addEventListener('click',function(){curPage=pg;render();});return b;}
+        if(curPage>1)pages.appendChild(mkB('\u2039',curPage-1));
+        var ns=[];if(tpg<=7){for(var i=1;i<=tpg;i++)ns.push(i);}else{ns=[1];if(curPage>3)ns.push('\u2026');for(var i=Math.max(2,curPage-1);i<=Math.min(tpg-1,curPage+1);i++)ns.push(i);if(curPage<tpg-2)ns.push('\u2026');ns.push(tpg);}
+        ns.forEach(function(p){var b=mkB(p,p==='\u2026'?0:p);if(p==='\u2026')b.classList.add('lm-ellipsis');pages.appendChild(b);});
+        if(curPage<tpg)pages.appendChild(mkB('\u203a',curPage+1));
+        wrap.appendChild(pages);
+    }
+    var ppW=document.createElement('div');ppW.className='lm-per-page-wrap';
+    var sl=document.createElement('select');sl.className='lm-select';sl.style.padding='4px 8px';sl.style.margin='0 4px';
+    [20,50,100,'all'].forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v==='all'?'All':v;if((pp===Infinity&&v==='all')||pp===v)o.selected=true;sl.appendChild(o);});
+    sl.addEventListener('change',function(){perPage=sl.value;curPage=1;render();});
+    ppW.appendChild(document.createTextNode('Show '));ppW.appendChild(sl);ppW.appendChild(document.createTextNode(' per page'));
+    wrap.appendChild(ppW);el.appendChild(wrap);
+}
+
+// ── Delete-book permission warning ──────────────────────────────────────────
+function wireDeletePermWarning(formEl) {
+    if(!formEl) return;
+    var cb = formEl.querySelector('input[name="perm[book_settings][delete]"]');
+    if(!cb) return;
+    var warn = document.createElement('div');
+    warn.className = 'delete-perm-warning';
+    warn.style.display = 'none';
+    warn.innerHTML = '<i class=\'fa-solid fa-triangle-exclamation\'></i>'
+        + ' <strong>Warning:</strong> This allows the employee to permanently delete the entire book and all its data. Only grant this to highly trusted people.';
+    cb.closest('.perm-check') ? cb.closest('.perm-check').parentNode.appendChild(warn) : cb.parentNode.appendChild(warn);
+    cb.addEventListener('change', function(){
+        warn.style.display = this.checked ? 'flex' : 'none';
+    });
+}
+
+// ── toggleAllPerms (needed by All/None buttons in permission grids) ──────────
+function toggleAllPerms(prefix, val) {
+    document.querySelectorAll('input[name^="perm["]').forEach(function(cb) {
+        // Only toggle checkboxes inside the relevant form prefix context
+        var form = cb.closest('form');
+        if (!form) return;
+        var formId = form.id || form.getAttribute('data-prefix') || '';
+        // Match by surrounding modal or form id containing the prefix
+        var container = cb.closest('[id*="'+prefix+'"], [data-prefix*="'+prefix+'"]');
+        if (!container && prefix) {
+            // Fallback: toggle all visible permission checkboxes in the nearest open modal
+            var modal = cb.closest('.modal-backdrop.open');
+            if (modal) { cb.checked = val; cb.dispatchEvent(new Event('change')); }
+            return;
+        }
+        if (container) { cb.checked = val; cb.dispatchEvent(new Event('change')); }
+    });
+    // Simpler: find all perm checkboxes inside the form that called this
+    // The button has onclick="toggleAllPerms('invite',true)" so we match by modal
+    var modals = {
+        'invite':     '#inviteModal',
+        'desig':      '#addDesigModal',
+        'edit-desig': '#editDesigModal',
+        'add-emp':    '#addEmployeeModal',
+    };
+    var sel = modals[prefix];
+    if (sel) {
+        var container2 = document.querySelector(sel);
+        if (container2) {
+            container2.querySelectorAll('input[type="checkbox"][name^="perm["]').forEach(function(cb) {
+                cb.checked = val;
+                cb.dispatchEvent(new Event('change'));
+            });
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    init();
+    // Sync perm-check pill visual state
+    document.querySelectorAll('.perm-check').forEach(function(pill) {
+        var cb = pill.querySelector('input[type="checkbox"]');
+        if (!cb) return;
+        function sync() { pill.classList.toggle('checked', cb.checked); }
+        sync();
+        cb.addEventListener('change', sync);
+        pill.addEventListener('click', function(e) {
+            if (e.target !== cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+        });
+    });
+    // Wire delete-book permission warning on any checkbox that appears
+    document.querySelectorAll('input[name="perm[book_settings][delete]"]').forEach(function(cb) {
+        var warn = cb.closest('label,li,.perm-check');
+        if (!warn) return;
+        var el = document.createElement('div');
+        el.className = 'delete-perm-warning';
+        el.style.cssText = 'display:none;align-items:center;gap:6px;margin-top:6px';
+        el.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>'
+            + '<span><strong>Danger:</strong> This lets the employee permanently delete this entire book and all its data.</span>';
+        warn.parentNode.insertBefore(el, warn.nextSibling);
+        cb.addEventListener('change', function() { el.style.display = this.checked ? 'flex' : 'none'; });
+    });
 });
+})();
 </script>
 
 <?php

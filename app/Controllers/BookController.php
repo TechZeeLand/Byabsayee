@@ -191,7 +191,25 @@ class BookController
         if (guest()) redirect('/login');
         csrf_verify();
         $book = $this->getBookOrFail($params['id']);
-        Database::run('UPDATE books SET deleted_at=? WHERE id=?', [now(),$book['id']]);
+
+        $user = auth();
+        $isOwner = ((int)$book['user_id'] === (int)$user['id']);
+
+        if (!$isOwner) {
+            // Check if this member has been explicitly granted book_settings.delete permission
+            $member = Database::row(
+                'SELECT permissions FROM book_members WHERE book_id=? AND user_id=? AND status="active"',
+                [$book['id'], $user['id']]
+            );
+            $perms = $member ? (json_decode($member['permissions'] ?? '{}', true) ?? []) : [];
+            $canDelete = !empty($perms['book_settings']['delete']);
+
+            if (!$canDelete) {
+                redirect('/books/'.$book['id'].'/settings', ['error' => 'Only the book owner or an employee with delete permission can delete this book.']);
+            }
+        }
+
+        Database::run('UPDATE books SET deleted_at=? WHERE id=?', [now(), $book['id']]);
         redirect('/books', ['success' => '"'.$book['name'].'" deleted.']);
     }
 
